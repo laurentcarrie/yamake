@@ -4,13 +4,20 @@ use std::path::PathBuf;
 
 // use petgraph::graph::NodeIndex;
 
-pub type BuildFn = Box<dyn Fn(PathBuf,Vec<(PathBuf,String)>) -> BoxFuture<'static, bool>>;
+pub type BuildFn = Box<
+    dyn Fn(
+        PathBuf,
+        Vec<(PathBuf, String)>,
+    ) -> BoxFuture<'static, Result<bool, Box<dyn std::error::Error>>>,
+>;
 // type StoredFn = Box<dyn Fn(i32, i32) -> BoxFuture<'static, i32>>;
 
-pub fn convert_fn<Fut: Future<Output = bool> + Send + 'static>(
-    f: impl Fn(PathBuf,Vec<(PathBuf,Sting)>) -> Fut + 'static,
+pub fn convert_fn<
+    Fut: Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send + 'static,
+>(
+    f: impl Fn(PathBuf, Vec<(PathBuf, String)>) -> Fut + 'static,
 ) -> BuildFn {
-    Box::new(move |a,b| Box::pin(f(a,b)))
+    Box::new(move |a, b| Box::pin(f(a, b)))
 }
 
 // pub type MessageProcessor = fn(&str, mpsc::Sender<String>) -> BoxFuture<'static, ()>;

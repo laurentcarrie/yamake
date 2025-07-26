@@ -14,8 +14,11 @@ use yamake::model as M;
 
 pub struct CSource;
 
-async fn do_nothing(target:PathBuf,sources:Vec<(PathBuf,String)>) -> bool {
-    true
+async fn do_nothing(
+    target: PathBuf,
+    sources: Vec<(PathBuf, String)>,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    Ok(true)
 }
 
 // async fn object_file_from_cfile(
