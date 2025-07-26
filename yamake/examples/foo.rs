@@ -28,33 +28,33 @@ async fn do_nothing(
 //     true
 // }
 
-// pub async fn xxobject_file_from_cfile(
-//     target_file: PathBuf,
-//     sources: Vec<(PathBuf, String)>,
-// ) -> Result<bool, Box<dyn std::error::Error>> {
-//     if sources.len() != 1 {
-//         return Err("bad length for build".into());
-//     };
-//     let source = sources.first().ok_or("empty sources")?;
-//     if source.1 != ".o".to_string() {
-//         return Err("bad build of graph".into());
-//     };
-//     let source = source.0.clone();
+pub async fn object_file_from_cfile(
+    target_file: PathBuf,
+    sources: Vec<(PathBuf, String)>,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    if sources.len() != 1 {
+        return Err("bad length for build".into());
+    };
+    let source = sources.first().ok_or("empty sources")?;
+    if source.1 != ".o".to_string() {
+        return Err("bad build of graph".into());
+    };
+    let source = source.0.clone();
 
-//     let child = Command::new("gcc")
-//         .arg("-c")
-//         .arg(source.file_name().ok_or("huh, no filename ?")?)
-//         .arg("-o")
-//         .arg(target_file)
-//         .kill_on_drop(true)
-//         .stdout(Stdio::piped())
-//         .stderr(Stdio::piped())
-//         .spawn()?
-//         .wait()
-//         .await?;
+    let child = Command::new("gcc")
+        .arg("-c")
+        .arg(source.file_name().ok_or("huh, no filename ?")?)
+        .arg("-o")
+        .arg(target_file)
+        .kill_on_drop(true)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?
+        .wait()
+        .await?;
 
-//     Ok(true)
-// }
+    Ok(true)
+}
 
 // pub async fn exe_from_obj_files(
 //     target_file: PathBuf,
