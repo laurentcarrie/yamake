@@ -60,14 +60,6 @@ impl TSquare for Square {
     }
 }
 
-// impl TRectangle for Square {
-//     fn a(&self) -> f64 {
-//         self.taille_du_cote
-//     }
-//     fn b(&self) -> f64 {
-//         self.taille_du_cote
-//     }
-// }
 
 pub trait THasName {
     fn name(&self) -> String;
@@ -95,8 +87,7 @@ impl<T: TQuadrilatere + THasName> TNamedQuadrilatere for T {}
 pub fn my_print<T: TNamedQuadrilatere + ?Sized>(q: &T) {
     print!(
         "type : {} ; a is {} ; b is {} ; diag is {}\n",
-        // <T as THasName>::name(),
-        "foo",
+        <T as THasName>::name(q),
         q.a(),
         q.b(),
         q.diag()
