@@ -14,7 +14,7 @@ use yamake::model as M;
 
 pub struct CSource;
 
-async fn do_nothing(i: i32) -> bool {
+async fn do_nothing(target:PathBuf,sources:Vec<(PathBuf,String)>) -> bool {
     true
 }
 
