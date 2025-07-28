@@ -17,6 +17,8 @@ use tokio::task::JoinSet;
 
 pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
     log::info!("mount");
+    std::fs::create_dir_all(&g.sandbox);
+
     for id in g.g.node_indices() {
         let n = g.g.node_weight(id).ok_or("huh ?")?;
         if g.g
@@ -24,11 +26,21 @@ pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
             .count()
             == 0
         {
+            log::info!("mount {:?}", id);
             let n = g.g.node_weight(id).ok_or("huh ?")?;
             let mut target_in_srcdir = g.srcdir.clone();
             target_in_srcdir.push(&n.target);
             if !target_in_srcdir.exists() {
-                return Err(format!("no such file : {:?}", n.target).into());
+                let msg = format!(
+                    r###"""
+                this target node has no predecessor : {}
+                either :
+                - it is a source file that does not exist, check typos or create it
+                - it is a built file, add a link between this node and its predecessors
+                """###,
+                    n.target.display().hex("#FF1493").on_hex("#F0FFFF").bold(),
+                );
+                return Err(msg.into());
             }
             let mut target_in_sandbox = g.sandbox.clone();
             target_in_sandbox.push(&n.target);
@@ -53,8 +65,20 @@ async fn build_node(
     ni: NodeIndex,
     build: M::BuildFn,
 ) -> () {
-    let bt = M::BuildType::Rebuilt(target.clone());
-    (build)(sandbox.clone(), target.clone(), sources).unwrap();
+    let bt = match (build)(sandbox.clone(), target.clone(), sources) {
+        Ok(success) => {
+            if success {
+                M::BuildType::Rebuilt(target)
+            } else {
+                M::BuildType::Failed
+            }
+        }
+        Err(e) => {
+            log::error!("{}", e);
+            M::BuildType::Failed
+        }
+    };
+
     match tx.send((ni, bt)).await {
         Ok(()) => (),
         Err(e) => log::error!("failed to send node index: {:?} {}", ni, e),
@@ -63,7 +87,6 @@ async fn build_node(
 
 pub async fn make(
     g: &M::G,
-    sandbox: PathBuf,
     _force_rebuild: bool,
     nb_workers: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -215,7 +238,7 @@ pub async fn make(
                         // tx.send(n).await.unwrap();
                         set.spawn(build_node(
                             tx.clone(),
-                            sandbox.clone(),
+                            g.sandbox.clone(),
                             node.target.clone(),
                             sources,
                             n,

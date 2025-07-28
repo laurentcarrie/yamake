@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 argh = "0.1.13"
 colored_text = "0.3.0"
+fix_fn = "1.0.2"
 futures = "0.3.31"
 indicatif = "0.18.0"
 log = "0.4.27"
@@ -14,6 +15,7 @@ serde = "1.0.219"
 simple-logging = "2.0.2"
 simple_logger = "5.0.0"
 tokio = { version = "1.46.1", features = ["full"] }
+walkdir = "2.5.0"
 
 
 [[examples]]
