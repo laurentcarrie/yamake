@@ -19,4 +19,4 @@ walkdir = "2.5.0"
 
 
 [[examples]]
-path="examples/foo.rs" 
+path="examples/c_program_example.rs" 

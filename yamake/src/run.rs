@@ -1,6 +1,7 @@
 use colored_text::Colorize;
 use log;
-
+use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 use tokio::sync::mpsc;
 
@@ -12,6 +13,7 @@ use std::result::Result;
 // use std::time::Duration;
 
 use crate::model as M;
+use crate::util::logstream;
 // use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 
@@ -65,16 +67,43 @@ async fn build_node(
     ni: NodeIndex,
     build: M::BuildFn,
 ) -> () {
-    let bt = match (build)(sandbox.clone(), target.clone(), sources) {
+    let mut logpath = sandbox.clone();
+    logpath.push("log");
+    std::fs::create_dir_all(&logpath).expect("should be able to create logs dir");
+
+    let stdout = {
+        let mut p = logpath.clone();
+        p.push(format!("{}-stdout.log", ni.index()));
+        p
+    };
+
+    let stderr = {
+        let mut p = logpath.clone();
+        p.push(format!("{}-sterr.log", ni.index()));
+        p
+    };
+
+    let bt = match (build)(
+        sandbox.clone(),
+        ni,
+        target.clone(),
+        sources,
+        stdout.clone(),
+        stderr.clone(),
+    ) {
         Ok(success) => {
             if success {
+                // process ran and exited with code 0
                 M::BuildType::Rebuilt(target)
             } else {
+                // process ran and exited with code != 0
                 M::BuildType::Failed
             }
         }
         Err(e) => {
             log::error!("{}", e);
+            std::fs::write(stderr.clone(), format!("{}", e));
+
             M::BuildType::Failed
         }
     };
@@ -100,8 +129,19 @@ pub async fn make(
     // let done_text = "DONE".hex("#8B008B").on_hex("#7FFF00").bold();
     let done_text = "DONE".hex("#7FFF00").bold();
     let _not_touched_text = "Skip".hex("#8B008B").on_hex("#7FFFFF").bold();
-    let failed_text = "FAILED".hex("#FF1493").on_hex("#F0FFFF").bold();
-    let ancestor_failed_text = "Ancestor Failed".hex("#FF8C00").on_hex("#000000").bold();
+    let failed_text = "FAILED"
+        .hex("#FF1493")
+        // .on_hex("#F0FFFF")
+        .on_hex("#d38a8aff")
+        .bold();
+    // let ancestor_failed_text = "Ancestor Failed".hex("#FF8C00").on_hex("#000000").bold();
+    let ancestor_failed_text = "Ancestor Failed".hex("#FF8C00").bold();
+    let id_text = |id: NodeIndex| -> String {
+        format!("{:3}", id.index())
+            .hex("#8B008B")
+            .on_hex("#7FFFFF")
+            .bold()
+    };
 
     let pb = ProgressBar::new(g.g.node_indices().count().try_into().unwrap());
     pb.set_style(
@@ -232,14 +272,21 @@ pub async fn make(
                                 .map(|ni| g.g.node_weight(ni).ok_or("huh ? no such node"))
                                 .collect::<Result<Vec<_>, _>>()?
                                 .into_iter()
-                                .map(|x| (x.target.clone(), x.tag.clone()))
+                                .map(|x| {
+                                    let mut target = g.sandbox.clone();
+                                    target.push(x.target.clone());
+                                    (target, x.tag.clone())
+                                })
                                 .collect::<Vec<_>>();
 
                         // tx.send(n).await.unwrap();
+                        let mut target = g.sandbox.clone();
+                        target.push(node.target.clone());
+
                         set.spawn(build_node(
                             tx.clone(),
                             g.sandbox.clone(),
-                            node.target.clone(),
+                            target,
                             sources,
                             n,
                             node.build,
@@ -266,7 +313,7 @@ pub async fn make(
                 M::BuildType::Rebuilt(target) => {
                     rebuilt.insert(li.0);
                     built_targets.insert(li.0, target);
-                    pb.println(format!("{} node {:?} ", done_text, node));
+                    pb.println(format!("{} {} node {:?} ", id_text(li.0), done_text, node));
                 }
                 M::BuildType::NotTouched(target) => {
                     skipped.insert(li.0);
@@ -275,7 +322,12 @@ pub async fn make(
                 }
                 M::BuildType::Failed => {
                     failed.insert(li.0);
-                    pb.println(format!("{} node {:?} ", failed_text, node));
+                    pb.println(format!(
+                        "{} {} node {:?} ",
+                        id_text(li.0),
+                        failed_text,
+                        node
+                    ));
                 }
                 M::BuildType::AncestorFailed => {
                     ancestor_failed.insert(li.0);

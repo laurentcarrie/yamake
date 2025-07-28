@@ -1,33 +1,41 @@
 use colored_text::Colorize;
-use futures::future::BoxFuture;
 use petgraph::Graph;
 use std::{collections::HashMap, path::PathBuf};
 
 use petgraph::graph::NodeIndex;
 
-pub type BuildFnx = Box<
-    dyn Fn(
-        PathBuf,
-        Vec<(PathBuf, String)>,
-    ) -> BoxFuture<'static, Result<bool, Box<dyn std::error::Error>>>,
->;
-type StoredFn = Box<dyn Fn(i32, i32) -> BoxFuture<'static, i32>>;
+// pub type BuildFnx = Box<
+//     dyn Fn(
+//         PathBuf,
+//         Vec<(PathBuf, String)>,
+//     ) -> BoxFuture<'static, Result<bool, Box<dyn std::error::Error>>>,
+// >;
+// type StoredFn = Box<dyn Fn(i32, i32) -> BoxFuture<'static, i32>>;
 
-pub type BuildFn =
-    fn(PathBuf, PathBuf, Vec<(PathBuf, String)>) -> Result<bool, Box<dyn std::error::Error>>;
+pub type BuildFn = fn(
+    PathBuf,
+    petgraph::graph::NodeIndex,
+    PathBuf,
+    Vec<(PathBuf, String)>,
+    PathBuf,
+    PathBuf,
+) -> Result<bool, Box<dyn std::error::Error>>;
 
-pub fn convert_fn<
-    Fut: Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send + 'static,
->(
-    f: impl Fn(PathBuf, Vec<(PathBuf, String)>) -> Fut + 'static,
-) -> BuildFnx {
-    Box::new(move |a, b| Box::pin(f(a, b)))
-}
+// pub fn convert_fn<
+//     Fut: Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send + 'static,
+// >(
+//     f: impl Fn(PathBuf, Vec<(PathBuf, String)>) -> Fut + 'static,
+// ) -> BuildFnx {
+//     Box::new(move |a, b| Box::pin(f(a, b)))
+// }
 
 fn do_nothing(
     _sandbox: PathBuf,
+    _ni: NodeIndex,
     _target: PathBuf,
     _sources: Vec<(PathBuf, String)>,
+    _stdout: PathBuf,
+    _stderr: PathBuf,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     Ok(true)
 }
@@ -136,7 +144,8 @@ impl G {
                 p.display().hex("#FF1493").on_hex("#F0FFFF").bold()
             ))
         };
-        self.g.try_add_edge(*get(pto)?, *get(pfrom)?, E)?;
+        self.g
+            .try_add_edge(*get(pfrom.clone())?, *get(pto.clone())?, E)?;
         Ok(())
     }
 }
