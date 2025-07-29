@@ -13,13 +13,12 @@ use std::result::Result;
 // use std::time::Duration;
 
 use crate::model as M;
-use crate::util::logstream;
 // use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 
 pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
     log::info!("mount");
-    std::fs::create_dir_all(&g.sandbox);
+    std::fs::create_dir_all(&g.sandbox)?;
 
     for id in g.g.node_indices() {
         let n = g.g.node_weight(id).ok_or("huh ?")?;
@@ -102,7 +101,7 @@ async fn build_node(
         }
         Err(e) => {
             log::error!("{}", e);
-            std::fs::write(stderr.clone(), format!("{}", e));
+            let _x = std::fs::write(stderr.clone(), format!("{}", e)).expect("write to stderr");
 
             M::BuildType::Failed
         }
@@ -313,7 +312,7 @@ pub async fn make(
                 M::BuildType::Rebuilt(target) => {
                     rebuilt.insert(li.0);
                     built_targets.insert(li.0, target);
-                    pb.println(format!("{} {} node {:?} ", id_text(li.0), done_text, node));
+                    pb.println(format!("{} {} {:?} ", id_text(li.0), done_text, node));
                 }
                 M::BuildType::NotTouched(target) => {
                     skipped.insert(li.0);
@@ -349,6 +348,82 @@ pub async fn make(
         pb.println(format!("{} node {:?} ", failed_text, node));
     }
     pb.finish_with_message("done");
+
+    Ok(())
+}
+
+pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
+    let id_text = |id: NodeIndex| -> String {
+        format!("{:3}", id.index())
+            .hex("#8B008B")
+            .on_hex("#FFFF7F")
+            .bold()
+    };
+    let pb = ProgressBar::new(g.g.node_indices().count().try_into().unwrap());
+    pb.set_style(
+        ProgressStyle::with_template(
+            "SCAN  [{elapsed_precise}] [{bar:40.cyan/blue}] ({pos}/{len}, ETA {eta})",
+        )
+        .unwrap(),
+    );
+
+    let mut logpath = g.sandbox.clone();
+    logpath.push("log");
+
+    let mut nodes_to_scan: Vec<NodeIndex> = Vec::new();
+    for (_, ni) in &g.map {
+        // let n = g.g.node_weight_mut(*ni).ok_or("huh ?")?;
+        if g.g
+            .neighbors_directed(*ni, petgraph::Direction::Incoming)
+            .count()
+            == 0
+        {
+            nodes_to_scan.push(*ni);
+        }
+    }
+
+    let mut edges_to_add: Vec<(NodeIndex, NodeIndex)> = Vec::new();
+    for ni in nodes_to_scan {
+        let n = g.g.node_weight_mut(ni).ok_or("huh ?")?;
+        let stdout = {
+            let mut p = logpath.clone();
+            p.push(format!("{}-stdout-scan.log", ni.index()));
+            p
+        };
+
+        let stderr = {
+            let mut p = logpath.clone();
+            p.push(format!("{}-sterr-scan.log", ni.index()));
+            p
+        };
+        let scanned_deps = (&n.scan)(
+            g.srcdir.clone(),
+            n.target.clone(),
+            stdout.clone(),
+            stderr.clone(),
+        )?;
+        for s in scanned_deps {
+            if let Some(ni_dep) = &g.map.get(&s.clone()) {
+                log::info!("add edge");
+                edges_to_add.push((**ni_dep, ni));
+            } else {
+                log::warn!("could resolve dep {:?}", s);
+                // if a scanned dependency does not exist, then it will not be copied to the sandbox and the build will fail
+            }
+        }
+        pb.println(format!("{:3} scan node {:?} ", id_text(ni), &n));
+        pb.inc(1);
+    }
+
+    for (a, b) in edges_to_add {
+        g.g.try_add_edge(
+            a,
+            b,
+            M::E {
+                kind: M::EKind::Scanned,
+            },
+        )?;
+    }
 
     Ok(())
 }

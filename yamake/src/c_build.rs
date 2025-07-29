@@ -1,9 +1,10 @@
 use log;
 // use tokio::process::Child;
-use std::{io::Write, path::PathBuf};
+use std::path::PathBuf;
 // use tokio::process::Command;
 use crate::util::logstream;
 use petgraph::graph::NodeIndex;
+use regex::Regex;
 use std::process::Command;
 
 use crate::model as M;
@@ -50,7 +51,7 @@ pub fn object_file_from_cfile(
 
 pub fn exe_from_obj_files(
     sandbox: PathBuf,
-    id: NodeIndex,
+    _id: NodeIndex,
     target_file: PathBuf,
     sources: Vec<(PathBuf, String)>,
     stdout: PathBuf,
@@ -70,4 +71,36 @@ pub fn exe_from_obj_files(
     log::info!("exit : {:?}", child.status());
 
     Ok(true)
+}
+
+pub fn c_file_scan(
+    srcdir: PathBuf,
+    target: PathBuf,
+    _stdout: PathBuf,
+    _stderr: PathBuf,
+    // include_path: Vec<PathBuf>,
+) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    log::info!("scan {:?}", target);
+    let mut src_target = srcdir.clone();
+    src_target.push(target);
+    if !src_target.exists() {
+        return Err(format!("cannot scan non existing file : {:?}", src_target).into());
+    }
+    let data = std::fs::read_to_string(src_target)?;
+    // let re = Regex::new(r###" *\#include *"(?<name>\w+)" *"###)?;
+    let re = Regex::new(r###"#include *"(?<f>.*)".*"###)?;
+
+    let mut ret: Vec<PathBuf> = vec![];
+
+    for caps in re.captures_iter(data.as_str()) {
+        log::info!("{:?}", caps);
+        log::info!("scan ==> {:?}", caps.name("f"));
+        let mut scanned = srcdir.clone();
+        let relpath = caps.name("f").ok_or("huh ? in scan")?.as_str();
+        ret.push(PathBuf::from(relpath));
+        scanned.push(relpath);
+        log::info!(" rel scan : {:?}", scanned);
+    }
+
+    Ok(ret)
 }

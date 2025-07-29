@@ -21,6 +21,9 @@ pub type BuildFn = fn(
     PathBuf,
 ) -> Result<bool, Box<dyn std::error::Error>>;
 
+pub type ScanFn =
+    fn(PathBuf, PathBuf, PathBuf, PathBuf) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>>;
+
 // pub fn convert_fn<
 //     Fut: Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send + 'static,
 // >(
@@ -40,6 +43,15 @@ fn do_nothing(
     Ok(true)
 }
 
+pub fn scan_nothing(
+    _srcdir: PathBuf,
+    _target: PathBuf,
+    _stdout: PathBuf,
+    _stderr: PathBuf,
+) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    Ok(vec![])
+}
+
 // pub type MessageProcessor = fn(&str, mpsc::Sender<String>) -> BoxFuture<'static, ()>;
 
 // #[derive(Debug)]
@@ -47,7 +59,7 @@ pub struct N {
     pub target: PathBuf,
     pub tag: String,
     pub build: BuildFn,
-    // pub build: BuildFn,
+    pub scan: ScanFn, // pub build: BuildFn,
 }
 
 impl std::fmt::Debug for N {
@@ -60,7 +72,15 @@ impl std::fmt::Debug for N {
 }
 
 #[derive(Debug)]
-pub struct E;
+pub enum EKind {
+    Scanned,
+    Direct,
+}
+
+#[derive(Debug)]
+pub struct E {
+    pub kind: EKind,
+}
 
 pub struct G {
     pub srcdir: PathBuf,
@@ -111,6 +131,7 @@ impl G {
             target: target.clone(),
             tag,
             build,
+            scan: scan_nothing,
         })?;
         self.map.insert(target.clone(), ni);
         Ok(())
@@ -118,9 +139,9 @@ impl G {
 
     pub fn add_root_node(
         &mut self,
-
         target: PathBuf,
         tag: String,
+        scan: ScanFn,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let target = target.canonicalize()?;
         let target = target.strip_prefix(&self.srcdir)?.to_path_buf();
@@ -128,6 +149,7 @@ impl G {
             target: target.clone(),
             tag,
             build: do_nothing,
+            scan,
         })?;
         self.map.insert(target.clone(), ni);
         Ok(())
@@ -144,8 +166,28 @@ impl G {
                 p.display().hex("#FF1493").on_hex("#F0FFFF").bold()
             ))
         };
-        self.g
-            .try_add_edge(*get(pfrom.clone())?, *get(pto.clone())?, E)?;
+        self.g.try_add_edge(
+            *get(pfrom.clone())?,
+            *get(pto.clone())?,
+            E {
+                kind: EKind::Direct,
+            },
+        )?;
+        Ok(())
+    }
+
+    pub async fn make(
+        &self,
+        force_rebuild: bool,
+        nb_workers: u32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        crate::run::make(self, force_rebuild, nb_workers).await?;
+        Ok(())
+    }
+
+    pub async fn scan(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        // crate::run::make(self, true, 4, ETraverse::Scan).await?;
+        crate::run::scan(self).await?;
         Ok(())
     }
 }

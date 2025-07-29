@@ -2,7 +2,7 @@ use argh::FromArgs;
 use log;
 use simple_logging;
 // use tokio::process::Child;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 // use tokio::process::Command;
 use walkdir::WalkDir;
 
@@ -10,7 +10,7 @@ use petgraph::dot::Dot;
 use yamake::model as M;
 use yamake::run::make;
 
-use yamake::c_build::{exe_from_obj_files, object_file_from_cfile};
+use yamake::c_build::{c_file_scan, exe_from_obj_files, object_file_from_cfile};
 
 pub struct CSource;
 
@@ -31,10 +31,12 @@ struct Cli {
     sandbox: String,
 }
 
+// fn c_scan(include_paths: Vec<PathBuf>) -> impl M::ScanFn {
+//     |srcdir, target, stdout, stderr| c_file_scan(srcdir, target, stdout, stderr, include_paths)
+// }
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    //  simple_logging::log_to_stderr(LevelFilter::Info) ;
-    // simple_logger::init_with_level(log::Level::Info).unwrap();
     simple_logging::log_to_file("make.log", log::LevelFilter::Info)?;
 
     let cli: Cli = argh::from_env();
@@ -43,6 +45,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sandbox = PathBuf::from(cli.sandbox);
 
     let mut g = M::G::new(srcdir.clone(), sandbox.clone())?;
+
+    let include_paths = vec![srcdir.clone()];
 
     // as in a Makefile, populate with the list of c file sources.
     // we also add the .h
@@ -54,12 +58,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             if let Some(s) = entry.path().extension() {
                 match s.to_str() {
-                    Some("c") => {
-                        g.add_root_node(entry.path().to_path_buf(), "c file".to_string())?
-                    }
-                    Some("h") => {
-                        g.add_root_node(entry.path().to_path_buf(), "h file".to_string())?
-                    }
+                    Some("c") => g.add_root_node(
+                        entry.path().to_path_buf(),
+                        "c file".to_string(),
+                        c_file_scan,
+                    )?,
+                    Some("h") => g.add_root_node(
+                        entry.path().to_path_buf(),
+                        "h file".to_string(),
+                        c_file_scan,
+                    )?,
                     s => log::info!("ignored entry : {:?}", s),
                 }
             }
@@ -68,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // as in Makefile where .c.o is an implicit rule,
     // for each .c file we add a .o file the explicit dependecy and the build function
-    for (source, nid) in g.map.clone() {
+    for (source, _nid) in g.map.clone() {
         if source.extension().map(|x| x.to_str()).flatten() == Some("c") {
             let target = source.with_extension("o");
             g.add_node(target.clone(), "o file".to_string(), object_file_from_cfile)?;
@@ -82,19 +90,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     g.add_edge(exe.clone(), PathBuf::from("project_1/main.o"))?;
     g.add_edge(exe.clone(), PathBuf::from("project_1/add.o"))?;
 
-    for (source, nid) in &g.map {
-        log::info!("map : {} => {:?}", source.display(), nid);
+    // add scanned dependencies
+    match g.scan().await {
+        Ok(()) => (),
+        Err(e) => {
+            println!("{}", e.to_string());
+            std::process::exit(1)
+        }
     }
 
+    // for demo or debug, output the tree
     let basic_dot = Dot::new(&g.g);
-
     let pdot = PathBuf::from("out.dot");
     std::fs::write(pdot, format!("{:?}", basic_dot))?;
 
     log::info!("dot file written");
 
     log::info!("main foo");
-    match make(&mut g, cli.force, cli.nb_workers).await {
+    match g.make(cli.force, cli.nb_workers).await {
         Ok(()) => (),
         Err(e) => println!("{}", e.to_string()),
     };
