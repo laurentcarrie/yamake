@@ -40,6 +40,11 @@ fn main() {
     g.add_node(&r).unwrap();
     g.g.add_edge(NodeIndex::new(0), NodeIndex::new(1), M::EG {});
 
+    for ni in g.g.node_indices() {
+        let n = g.g.node_weight(ni).unwrap() ;
+        println!("name : {}",n.name()) ;
+    }
+
     // for demo or debug, output the tree
     let basic_dot = Dot::new(&g.g);
     let pdot = PathBuf::from("out.dot");
