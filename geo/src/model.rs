@@ -1,6 +1,7 @@
 use petgraph as P;
 use std::collections::HashMap;
 
+
 pub trait TQuadrilatere {
     fn a(&self) -> u64;
     fn b(&self) -> u64;
@@ -141,7 +142,7 @@ impl MyGraph {
     pub fn add_node<T: TNamedQuadrilatere + 'static + Copy>(
         &mut self,
         n: &T,
-    ) -> Result<(), Arc<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let ni = self.g.try_add_node(Arc::new(*n))?;
         println!("--- add node {}", n.name());
         self.nodes.push(Arc::new(n.clone()));
@@ -149,7 +150,7 @@ impl MyGraph {
         Ok(())
     }
 
-    // pub fn add_edge(&mut self, nfrom: N, nto: N) -> Result<(), Arc<dyn std::error::Error>> {
+    // pub fn add_edge(&mut self, nfrom: N, nto: N) -> Result<(), Box<dyn std::error::Error>> {
     //     let _ni = self.g.try_add_edge(
     //         *self.try_get_ni_from_node(&nfrom)?,
     //         *self.try_get_ni_from_node(&nto)?,

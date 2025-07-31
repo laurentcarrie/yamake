@@ -2,6 +2,7 @@ use colored_text::Colorize;
 use log;
 use petgraph::Direction::Incoming;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use indicatif::{ProgressBar, ProgressStyle};
@@ -15,16 +16,15 @@ use crate::model as M;
 // use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 
-pub fn mount(g: &M::G) -> Result<bool, Arc<dyn std::error::Error>> {
+pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
     log::info!("mount");
-    std::fs::create_dir_all(&g.sandArc)?;
+    std::fs::create_dir_all(&g.sandbox)?;
 
     for id in g.g.node_indices() {
         let _n = g.g.node_weight(id).ok_or("huh ?")?;
-        if g.g
-            .neighbors_directed(id, petgraph::Direction::Incoming)
-            .count()
-            == 0
+        if !g.is_root_node(id) {
+            continue;
+        }
         {
             log::info!("mount {:?}", id);
             let n = g.g.node_weight(id).ok_or("huh ?")?;
@@ -44,14 +44,14 @@ pub fn mount(g: &M::G) -> Result<bool, Arc<dyn std::error::Error>> {
                 );
                 return Err(msg.into());
             }
-            let mut target_in_sandArc = g.sandArc.clone();
-            target_in_sandArc.push(&n.target());
+            let mut target_in_sandbox = g.sandbox.clone();
+            target_in_sandbox.push(&n.target());
 
-            log::info!("MOUNT {:?} => {:?}", target_in_srcdir, target_in_sandArc);
-            std::fs::create_dir_all(target_in_sandArc.parent().ok_or("no parent ?")?)?;
+            log::info!("MOUNT {:?} => {:?}", target_in_srcdir, target_in_sandbox);
+            std::fs::create_dir_all(target_in_sandbox.parent().ok_or("no parent ?")?)?;
             std::fs::copy(
                 target_in_srcdir.clone().as_os_str(),
-                target_in_sandArc.as_os_str(),
+                target_in_sandbox.as_os_str(),
             )?;
         }
     }
@@ -59,72 +59,90 @@ pub fn mount(g: &M::G) -> Result<bool, Arc<dyn std::error::Error>> {
     Ok(true)
 }
 
-async fn build_node(
+async fn build_xxx(
     tx: mpsc::Sender<(NodeIndex, M::BuildType)>,
-    sandArc: PathBuf,
-    n: &impl M::GNode,
+    sandbox: PathBuf,
     sources: Vec<(PathBuf, String)>,
     ni: NodeIndex,
-    // build: M::BuildFn,
-) -> () {
-    let mut logpath = sandArc.clone();
-    logpath.push("log");
-    std::fs::create_dir_all(&logpath).expect("should be able to create logs dir");
-
-    let _stdout = {
-        let mut p = logpath.clone();
-        p.push(format!("{}-stdout.log", ni.index()));
-        p
-    };
-
-    let _stderr = {
-        let mut p = logpath.clone();
-        p.push(format!("{}-sterr.log", ni.index()));
-        p
-    };
-    unimplemented!();
-    // let bt = match (build)(
-    //     sandArc.clone(),
-    //     ni,
-    //     target.clone(),
-    //     sources,
-    //     stdout.clone(),
-    //     stderr.clone(),
-    // ) {
-    //     Ok(success) => {
-    //         if success {
-    //             // process ran and exited with code 0
-    //             M::BuildType::Rebuilt(target)
-    //         } else {
-    //             // process ran and exited with code != 0
-    //             M::BuildType::Failed
-    //         }
-    //     }
-    //     Err(e) => {
-    //         log::error!("{}", e);
-    //         let _x = std::fs::write(stderr.clone(), format!("{}", e)).expect("write to stderr");
-
-    //         M::BuildType::Failed
-    //     }
-    // };
-
-    // match tx.send((ni, bt)).await {
-    //     Ok(()) => (),
-    //     Err(e) => log::error!("failed to send node index: {:?} {}", ni, e),
-    // };
+    node: &dyn M::GNode,
+    // n: &Arc<dyn M::GNode + 'static>,
+    // build: fn(
+    //     _sandbox: PathBuf,
+    //     _sources: Vec<PathBuf>,
+    //     _deps: Vec<PathBuf>,
+    //     _stdout: PathBuf,
+    //     _stderr: PathBuf,
+    // ) -> bool,
+) {
+    ()
 }
 
+// async fn build_node(
+//     tx: mpsc::Sender<(NodeIndex, M::BuildType)>,
+//     sandbox: PathBuf,
+//     n: &Arc<dyn M::GNode>,
+//     sources: Vec<(PathBuf, String)>,
+//     ni: NodeIndex,
+// ) -> () {
+//     let mut logpath = sandbox.clone();
+//     logpath.push("log");
+//     std::fs::create_dir_all(&logpath).expect("should be able to create logs dir");
+
+//     let _stdout = {
+//         let mut p = logpath.clone();
+//         p.push(format!("{}-stdout.log", ni.index()));
+//         p
+//     };
+
+//     let _stderr = {
+//         let mut p = logpath.clone();
+//         p.push(format!("{}-sterr.log", ni.index()));
+//         p
+//     };
+//     unimplemented!();
+//     // let bt = match (build)(
+//     //     sandbox.clone(),
+//     //     ni,
+//     //     target.clone(),
+//     //     sources,
+//     //     stdout.clone(),
+//     //     stderr.clone(),
+//     // ) {
+//     //     Ok(success) => {
+//     //         if success {
+//     //             // process ran and exited with code 0
+//     //             M::BuildType::Rebuilt(target)
+//     //         } else {
+//     //             // process ran and exited with code != 0
+//     //             M::BuildType::Failed
+//     //         }
+//     //     }
+//     //     Err(e) => {
+//     //         log::error!("{}", e);
+//     //         let _x = std::fs::write(stderr.clone(), format!("{}", e)).expect("write to stderr");
+
+//     //         M::BuildType::Failed
+//     //     }
+//     // };
+
+//     // match tx.send((ni, bt)).await {
+//     //     Ok(()) => (),
+//     //     Err(e) => log::error!("failed to send node index: {:?} {}", ni, e),
+//     // };
+// }
+
 pub async fn make(
-    g: &mut M::G,
+    g: &M::G,
     _force_rebuild: bool,
     nb_workers: u32,
-) -> Result<(), Arc<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error>> {
     mount(g)?;
     let (tx, mut rx) = mpsc::channel::<(NodeIndex, M::BuildType)>(1000);
 
     let mut set: JoinSet<()> = JoinSet::new();
 
-    g.scan().await?;
+    log::info!("{}:{} SCAN", file!(), line!());
+    // g.scan().await?;
 
     // let g: petgraph::Graph<M::N, M::E> = g.g;
 
@@ -216,20 +234,20 @@ pub async fn make(
             }
 
             loop {
-                for n in g.g.node_indices() {
+                for ni in g.g.node_indices() {
                     if running.len() == nb_workers as usize {
                         log::info!("break 'outer");
                         break 'outer;
                     }
-                    if !pending.contains(&n) {
+                    if !pending.contains(&ni) {
                         continue;
                     }
-                    let node = g.g.node_weight(n).ok_or("huh, no node?")?;
+                    let node = g.g.node_weight(ni).ok_or("huh, no node?")?;
                     let mut ok_to_start = true;
                     let mut an_ancestor_failed = false;
                     let mut an_ancestor_changed = false;
 
-                    for p in g.g.neighbors_directed(n, petgraph::Direction::Incoming) {
+                    for p in g.g.neighbors_directed(ni, petgraph::Direction::Incoming) {
                         if !rebuilt.contains(&p) && !skipped.contains(&p) {
                             ok_to_start = false;
                         }
@@ -241,51 +259,115 @@ pub async fn make(
                         }
                     }
                     if an_ancestor_failed {
-                        log::info!("ANCESTOR FAILED === > {:?} ; {:?}", node.target(), n);
-                        pending.remove(&n);
-                        ancestor_failed.insert(n);
-                        match tx.send((n, M::BuildType::AncestorFailed)).await {
+                        log::info!("ANCESTOR FAILED === > {:?} ; {:?}", node.target(), ni);
+                        pending.remove(&ni);
+                        ancestor_failed.insert(ni);
+                        match tx.send((ni, M::BuildType::AncestorFailed)).await {
                             Ok(()) => {
                                 // log::info!("ok, sent");
                                 ()
                             }
-                            Err(e) => log::error!("failed to send node index: {:?} {}", n, e),
+                            Err(e) => log::error!("failed to send node index: {:?} {}", ni, e),
                         };
                     // } else if ok_to_start && !an_ancestor_changed {
                     //     log::info!("SKIP === > {:?}", node);
-                    //     pending.remove(&n);
-                    //     skipped.insert(n);
+                    //     pending.remove(&ni);
+                    //     skipped.insert(ni);
                     //     match tx
-                    //         .send((n, M::BuildType::NotTouched(PathBuf::from(""))))
+                    //         .send((ni, M::BuildType::NotTouched(PathBuf::from(""))))
                     //         .await
                     //     {
                     //         Ok(()) => {
                     //             // log::info!("ok, sent");
                     //             ()
                     //         }
-                    //         Err(e) => log::error!("failed to send node index: {:?} {}", n, e),
+                    //         Err(e) => log::error!("failed to send node index: {:?} {}", ni, e),
                     //     };
                     } else if ok_to_start {
-                        log::info!("START === > node {:?} ; id {:?}", node.target(), n);
-                        pending.remove(&n);
-                        running.insert(n);
+                        log::info!("START === > node {:?} ; id {:?}", node.target(), ni);
+                        pending.remove(&ni);
+                        running.insert(ni);
                         let sources =
-                            g.g.neighbors_directed(n, petgraph::Direction::Incoming)
+                            g.g.neighbors_directed(ni, petgraph::Direction::Incoming)
                                 .map(|ni| g.g.node_weight(ni).ok_or("huh ? no such node"))
                                 .collect::<Result<Vec<_>, _>>()?
                                 .into_iter()
                                 .map(|x| {
-                                    let mut target = g.sandArc.clone();
+                                    let mut target = g.sandbox.clone();
                                     target.push(x.target().clone());
                                     (target, x.tag().clone())
                                 })
                                 .collect::<Vec<_>>();
 
-                        // tx.send(n).await.unwrap();
-                        let mut target = g.sandArc.clone();
+                        // tx.send(ni).await.unwrap();
+                        let mut target = g.sandbox.clone();
                         target.push(node.target().clone());
-                        unimplemented!();
-                        // set.spawn(build_node(tx.clone(), g.sandArc.clone(), node, sources, n));
+                        // unimplemented!();
+                        let sandbox = g.sandbox.clone();
+                        // set.spawn(build_node(tx.clone(), sandbox, node, sources, ni));
+                        let stdout = PathBuf::from("stdout");
+                        let stderr = PathBuf::from("stderr");
+                        // let build = || node.build(sandbox, sources, vec![], stdout, stderr);
+                        // set.spawn(async move |node: &dyn M::GNode| {
+                        //     // log::info!("build {:?}", node.target());
+                        //     log::info!("YYY");
+                        // });
+
+                        let node = node.clone();
+
+                        if g.is_root_node(ni) {
+                            let bt = M::BuildType::NotTouched(node.target().clone());
+                            match tx.send((ni, bt)).await {
+                                Ok(()) => (),
+                                Err(e) => {
+                                    log::error!("failed to send node index: {:?} {}", ni, e)
+                                }
+                            }
+                        } else {
+                            let tx = tx.clone();
+
+                            set.spawn(async move {
+                                log::info!("YYYYYY {:?} ; {:?}", target, node);
+                                let mut logpath = sandbox.clone();
+                                logpath.push("log");
+                                std::fs::create_dir_all(&logpath);
+                                let stdout = {
+                                    let mut p = logpath.clone();
+                                    p.push(format!("{}-stdout.log", ni.index()));
+                                    p
+                                };
+
+                                let stderr = {
+                                    let mut p = logpath.clone();
+                                    p.push(format!("{}-sterr.log", ni.index()));
+                                    p
+                                };
+                                let success = node.build(
+                                    sandbox.clone(),
+                                    sources.clone(),
+                                    vec![],
+                                    stdout,
+                                    stderr.clone(),
+                                );
+                                // let bt = match res {
+                                //     Ok(success) => {
+                                let bt = if success {
+                                    // process ran and exited with code 0
+                                    M::BuildType::Rebuilt(target)
+                                } else {
+                                    // process ran and exited with code != 0
+                                    M::BuildType::Failed
+                                };
+
+                                match tx.send((ni, bt)).await {
+                                    Ok(()) => (),
+                                    Err(e) => {
+                                        log::error!("failed to send node index: {:?} {}", ni, e)
+                                    }
+                                }
+                            });
+                        }
+
                         // // break 'outer;
                     } else {
                         log::info!(
@@ -297,6 +379,7 @@ pub async fn make(
                         );
                     }
                 }
+
                 break 'outer;
             }
         }
@@ -357,7 +440,7 @@ pub async fn make(
     Ok(())
 }
 
-pub async fn scan(g: &mut M::G) -> Result<(), Arc<dyn std::error::Error>> {
+pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
     let id_text = |id: NodeIndex| -> String {
         format!("{:3}", id.index())
             .hex("#8B008B")
@@ -372,15 +455,15 @@ pub async fn scan(g: &mut M::G) -> Result<(), Arc<dyn std::error::Error>> {
         .unwrap(),
     );
 
-    let mut logpath = g.sandArc.clone();
+    let mut logpath = g.sandbox.clone();
     logpath.push("log");
 
     let mut nodes_to_scan: Vec<(NodeIndex, &Arc<dyn M::GNode>)> = Vec::new();
     for ni in g.g.node_indices() {
         if g.g.edges_directed(ni, Incoming).count() as u32 == 0 {
-            let n = &g.g.node_weight(ni).ok_or("huh ?")?;
+            let node = &g.g.node_weight(ni).ok_or("huh ?")?;
 
-            nodes_to_scan.push((ni, n));
+            nodes_to_scan.push((ni, node));
         }
     }
     let mut edges_to_add: Vec<(NodeIndex, NodeIndex)> = Vec::new();
@@ -413,7 +496,7 @@ pub async fn scan(g: &mut M::G) -> Result<(), Arc<dyn std::error::Error>> {
                 }
                 Err(_) => {
                     log::warn!("could resolve dep {:?}", p);
-                    // if a scanned dependency does not exist, then it will not be copied to the sandArc and the build will fail
+                    // if a scanned dependency does not exist, then it will not be copied to the sandbox and the build will fail
                 }
             }
         }

@@ -15,6 +15,9 @@ use yamake::c_project::c_file::Cfile;
 use yamake::c_project::h_file::Hfile;
 use yamake::c_project::o_file::Ofile;
 use yamake::c_project::x_file::Xfile;
+use yamake::model::GNode;
+
+use petgraph::graph::NodeIndex;
 
 pub struct CSource;
 
@@ -103,7 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         for (c, o) in oc_files {
-            g.add_node(Ofile::new(o.clone())?)?;
+            g.add_node(Ofile::new(o.clone(), include_paths.clone())?)?;
             g.add_edge(o, c)?;
         }
     }
@@ -115,6 +118,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     g.add_edge(exe.clone(), PathBuf::from("project_1/add.o"))?;
 
     g.scan().await?;
+
+    {
+        let ni: NodeIndex = NodeIndex::new(0);
+        let n = g.g.node_weight(ni).unwrap();
+        let nn = n.clone();
+
+        tokio::task::spawn(async move { log::info!("ZZZZ ; {:?}", nn.tag()) });
+    }
+
+    // tokio::task::spawn(async move { log::info!("ZZZZ ; {:?}", n.tag()) });
 
     // for demo or debug, output the tree
     let basic_dot = Dot::new(&g.g);

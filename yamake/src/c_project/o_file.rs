@@ -6,36 +6,58 @@ use crate::model as M;
 use petgraph::graph::NodeIndex;
 use regex::Regex;
 use std::process::Command;
+// use std::sync::Arc;
+use crate::c_project::c_compile::object_file_from_cfile;
 
 #[derive(Debug, Clone)]
 pub struct Ofile {
     target: PathBuf,
+    include_paths: Vec<PathBuf>,
 }
 
 impl Ofile {
-    pub fn new(target: PathBuf) -> Result<Ofile, Arc<dyn std::error::Error>> {
+    pub fn new(
+        target: PathBuf,
+        include_paths: Vec<PathBuf>,
+    ) -> Result<Ofile, Box<dyn std::error::Error>> {
         // let target = target.as_os_str().to_str().ok_or("bad string")?.to_string();
-        Ok(Ofile { target })
+        Ok(Ofile {
+            target,
+            include_paths,
+        })
     }
 }
 
 impl M::GNode for Ofile {
     fn build(
         &self,
-        _sandArc: PathBuf,
-        _sources: Vec<PathBuf>,
-        _deps: Vec<PathBuf>,
-        _stdout: PathBuf,
-        _stderr: PathBuf,
+        sandbox: PathBuf,
+        sources: Vec<(PathBuf, String)>,
+        deps: Vec<PathBuf>,
+        stdout: PathBuf,
+        stderr: PathBuf,
     ) -> bool {
-        unimplemented!()
+        match object_file_from_cfile(
+            sandbox,
+            self.target(),
+            sources,
+            self.include_paths.clone(),
+            stdout,
+            stderr.clone(),
+        ) {
+            Ok(b) => b,
+            Err(e) => {
+                std::fs::write(stderr.clone(), format!("{:?}", e));
+                false
+            }
+        }
     }
 
     fn scan(
         &self,
         _srcdir: PathBuf,
         _source: PathBuf,
-    ) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>> {
+    ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         unimplemented!()
     }
 
@@ -57,13 +79,13 @@ impl M::GNode for Ofile {
 // }
 
 pub fn object_file_from_Ofile(
-    sandArc: PathBuf,
+    sandbox: PathBuf,
     id: NodeIndex,
     target_file: PathBuf,
     sources: Vec<(PathBuf, String)>,
     stdout: PathBuf,
     stderr: PathBuf,
-) -> Result<bool, Arc<dyn std::error::Error>> {
+) -> Result<bool, Box<dyn std::error::Error>> {
     log::info!("compile C file {:?}; id is {}", target_file, id.index());
     if sources.len() != 1 {
         return Err("bad length of sources, should be 1".into());
@@ -83,7 +105,7 @@ pub fn object_file_from_Ofile(
         .arg(source)
         .arg("-o")
         .arg(target_file)
-        .current_dir(&sandArc)
+        .current_dir(&sandbox)
         .stdout(std::fs::File::create(stdout)?)
         .stderr(std::fs::File::create(stderr)?);
     let child = binding;
@@ -97,20 +119,20 @@ pub fn object_file_from_Ofile(
 }
 
 pub fn exe_from_obj_files(
-    sandArc: PathBuf,
+    sandbox: PathBuf,
     _id: NodeIndex,
     target_file: PathBuf,
     sources: Vec<(PathBuf, String)>,
     stdout: PathBuf,
     stderr: PathBuf,
-) -> Result<bool, Arc<dyn std::error::Error>> {
+) -> Result<bool, Box<dyn std::error::Error>> {
     let mut binding = Command::new("gcc");
     let binding = binding
         .args(sources.iter().map(|(s, _)| s).collect::<Vec<_>>())
         .arg("-o")
         .arg(target_file)
-        .current_dir(&sandArc)
-        .current_dir(&sandArc)
+        .current_dir(&sandbox)
+        .current_dir(&sandbox)
         .stdout(std::fs::File::create(stdout)?)
         .stderr(std::fs::File::create(stderr)?);
     let child = binding;
@@ -126,7 +148,7 @@ pub fn c_file_scan(
     _stdout: PathBuf,
     _stderr: PathBuf,
     // include_path: Vec<PathBuf>,
-) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>> {
+) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     log::info!("scan {:?}", target);
     let mut src_target = srcdir.clone();
     src_target.push(target);

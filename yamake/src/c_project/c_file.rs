@@ -1,7 +1,9 @@
+use crate::c_project::c_link::exe_from_obj_files;
 use std::path::PathBuf;
 // use tokio::process::Command;
 use crate::c_project::c_scan::c_file_scan;
 use crate::model as M;
+// use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct Cfile {
@@ -13,7 +15,7 @@ impl Cfile {
     pub fn new(
         target: PathBuf,
         include_paths: Vec<PathBuf>,
-    ) -> Result<Cfile, Arc<dyn std::error::Error>> {
+    ) -> Result<Cfile, Box<dyn std::error::Error>> {
         // let target = target.as_os_str().to_str().ok_or("bad string")?.to_string();
         Ok(Cfile {
             target,
@@ -25,20 +27,20 @@ impl Cfile {
 impl M::GNode for Cfile {
     fn build(
         &self,
-        _sandArc: PathBuf,
-        _sources: Vec<PathBuf>,
-        _deps: Vec<PathBuf>,
-        _stdout: PathBuf,
-        _stderr: PathBuf,
+        sandbox: PathBuf,
+        sources: Vec<(PathBuf, String)>,
+        deps: Vec<PathBuf>,
+        stdout: PathBuf,
+        stderr: PathBuf,
     ) -> bool {
-        unimplemented!()
+        true
     }
 
     fn scan(
         &self,
         srcdir: PathBuf,
         source: PathBuf,
-    ) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>> {
+    ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         let ret = c_file_scan(srcdir, source, self.include_paths.clone())?;
         Ok(ret)
     }
@@ -61,12 +63,12 @@ impl M::GNode for Cfile {
 // }
 
 // pub fn object_file_from_cfile(
-//     sandArc: PathBuf,
+//     sandbox: PathBuf,
 //     target_file: PathBuf,
 //     sources: Vec<(PathBuf, String)>,
 //     stdout: PathBuf,
 //     stderr: PathBuf,
-// ) -> Result<bool, Arc<dyn std::error::Error>> {
+// ) -> Result<bool, Box<dyn std::error::Error>> {
 //     log::info!("compile C file {:?}", target_file);
 //     if sources.len() != 1 {
 //         return Err("bad length of sources, should be 1".into());
@@ -86,7 +88,7 @@ impl M::GNode for Cfile {
 //         .arg(source)
 //         .arg("-o")
 //         .arg(target_file)
-//         .current_dir(&sandArc)
+//         .current_dir(&sandbox)
 //         .stdout(std::fs::File::create(stdout)?)
 //         .stderr(std::fs::File::create(stderr)?);
 //     let child = binding;
@@ -100,20 +102,20 @@ impl M::GNode for Cfile {
 // }
 
 // pub fn exe_from_obj_files(
-//     sandArc: PathBuf,
+//     sandbox: PathBuf,
 //     _id: NodeIndex,
 //     target_file: PathBuf,
 //     sources: Vec<(PathBuf, String)>,
 //     stdout: PathBuf,
 //     stderr: PathBuf,
-// ) -> Result<bool, Arc<dyn std::error::Error>> {
+// ) -> Result<bool, Box<dyn std::error::Error>> {
 //     let mut binding = Command::new("gcc");
 //     let binding = binding
 //         .args(sources.iter().map(|(s, _)| s).collect::<Vec<_>>())
 //         .arg("-o")
 //         .arg(target_file)
-//         .current_dir(&sandArc)
-//         .current_dir(&sandArc)
+//         .current_dir(&sandbox)
+//         .current_dir(&sandbox)
 //         .stdout(std::fs::File::create(stdout)?)
 //         .stderr(std::fs::File::create(stderr)?);
 //     let child = binding;

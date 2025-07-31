@@ -3,6 +3,7 @@ use std::path::PathBuf;
 // use tokio::process::Command;
 use crate::c_project::c_scan::c_file_scan;
 use crate::model as M;
+// use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct Hfile {
@@ -14,7 +15,7 @@ impl Hfile {
     pub fn new(
         target: PathBuf,
         include_paths: Vec<PathBuf>,
-    ) -> Result<Hfile, Arc<dyn std::error::Error>> {
+    ) -> Result<Hfile, Box<dyn std::error::Error>> {
         // let target = target.as_os_str().to_str().ok_or("bad string")?.to_string();
         Ok(Hfile {
             target,
@@ -26,8 +27,8 @@ impl Hfile {
 impl M::GNode for Hfile {
     fn build(
         &self,
-        _sandArc: PathBuf,
-        _sources: Vec<PathBuf>,
+        _sandbox: PathBuf,
+        _sources: Vec<(PathBuf, String)>,
         _deps: Vec<PathBuf>,
         _stdout: PathBuf,
         _stderr: PathBuf,
@@ -39,7 +40,7 @@ impl M::GNode for Hfile {
         &self,
         srcdir: PathBuf,
         source: PathBuf,
-    ) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>> {
+    ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         c_file_scan(srcdir, source, self.include_paths.clone())
     }
 
