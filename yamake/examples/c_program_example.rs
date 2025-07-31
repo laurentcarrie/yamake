@@ -54,9 +54,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut g = M::G::new(srcdir.clone(), sandbox.clone())?;
 
-    // let include_paths = vec![srcdir.clone()];
-        let include_paths = vec![];
-
+    let include_paths = vec![srcdir.clone()];
+    // let include_paths = vec![];
 
     // as in a Makefile, populate with the list of c file sources.
     // we also add the .h

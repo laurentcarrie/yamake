@@ -1,7 +1,7 @@
 // use tokio::process::Child;
 use std::path::PathBuf;
 // use tokio::process::Command;
-use crate::c_project::c_scan::{self, c_file_scan};
+use crate::c_project::c_scan::c_file_scan;
 use crate::model as M;
 
 #[derive(Debug, Clone)]

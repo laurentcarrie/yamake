@@ -40,6 +40,7 @@ pub fn c_file_scan(
                 "could not find scanned dep in any include path {:?}",
                 relpath
             );
+            break 'outer;
         }
     }
 

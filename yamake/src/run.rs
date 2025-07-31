@@ -60,10 +60,10 @@ pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
 }
 
 async fn build_node(
-    _tx: mpsc::Sender<(NodeIndex, M::BuildType)>,
+    tx: mpsc::Sender<(NodeIndex, M::BuildType)>,
     sandbox: PathBuf,
-    _n: impl M::GNode,
-    _sources: Vec<(PathBuf, String)>,
+    n: &impl M::GNode,
+    sources: Vec<(PathBuf, String)>,
     ni: NodeIndex,
     // build: M::BuildFn,
 ) -> () {
@@ -284,16 +284,8 @@ pub async fn make(
                         // tx.send(n).await.unwrap();
                         let mut target = g.sandbox.clone();
                         target.push(node.target().clone());
-
                         unimplemented!();
-                        // set.spawn(build_node(
-                        //     tx.clone(),
-                        //     g.sandbox.clone(),
-                        //     target,
-                        //     sources,
-                        //     n,
-                        //     node.build,
-                        // ));
+                        // set.spawn(build_node(tx.clone(), g.sandbox.clone(), node, sources, n));
                         // // break 'outer;
                     } else {
                         log::info!(
