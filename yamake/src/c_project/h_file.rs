@@ -14,7 +14,7 @@ impl Hfile {
     pub fn new(
         target: PathBuf,
         include_paths: Vec<PathBuf>,
-    ) -> Result<Hfile, Box<dyn std::error::Error>> {
+    ) -> Result<Hfile, Arc<dyn std::error::Error>> {
         // let target = target.as_os_str().to_str().ok_or("bad string")?.to_string();
         Ok(Hfile {
             target,
@@ -26,7 +26,7 @@ impl Hfile {
 impl M::GNode for Hfile {
     fn build(
         &self,
-        _sandbox: PathBuf,
+        _sandArc: PathBuf,
         _sources: Vec<PathBuf>,
         _deps: Vec<PathBuf>,
         _stdout: PathBuf,
@@ -39,7 +39,7 @@ impl M::GNode for Hfile {
         &self,
         srcdir: PathBuf,
         source: PathBuf,
-    ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>> {
         c_file_scan(srcdir, source, self.include_paths.clone())
     }
 

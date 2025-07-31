@@ -13,7 +13,7 @@ pub struct Xfile {
 }
 
 impl Xfile {
-    pub fn new(target: PathBuf) -> Result<Xfile, Box<dyn std::error::Error>> {
+    pub fn new(target: PathBuf) -> Result<Xfile, Arc<dyn std::error::Error>> {
         // let target = target.as_os_str().to_str().ok_or("bad string")?.to_string();
         Ok(Xfile { target })
     }
@@ -22,7 +22,7 @@ impl Xfile {
 impl M::GNode for Xfile {
     fn build(
         &self,
-        _sandbox: PathBuf,
+        _sandArc: PathBuf,
         _sources: Vec<PathBuf>,
         _deps: Vec<PathBuf>,
         _stdout: PathBuf,
@@ -35,7 +35,7 @@ impl M::GNode for Xfile {
         &self,
         _srcdir: PathBuf,
         _source: PathBuf,
-    ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>> {
         unimplemented!()
     }
 
@@ -57,13 +57,13 @@ impl M::GNode for Xfile {
 // }
 
 pub fn object_file_from_Xfile(
-    sandbox: PathBuf,
+    sandArc: PathBuf,
     id: NodeIndex,
     target_file: PathBuf,
     sources: Vec<(PathBuf, String)>,
     stdout: PathBuf,
     stderr: PathBuf,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool, Arc<dyn std::error::Error>> {
     log::info!("compile C file {:?}; id is {}", target_file, id.index());
     if sources.len() != 1 {
         return Err("bad length of sources, should be 1".into());
@@ -83,7 +83,7 @@ pub fn object_file_from_Xfile(
         .arg(source)
         .arg("-o")
         .arg(target_file)
-        .current_dir(&sandbox)
+        .current_dir(&sandArc)
         .stdout(std::fs::File::create(stdout)?)
         .stderr(std::fs::File::create(stderr)?);
     let child = binding;
@@ -97,20 +97,20 @@ pub fn object_file_from_Xfile(
 }
 
 pub fn exe_from_obj_files(
-    sandbox: PathBuf,
+    sandArc: PathBuf,
     _id: NodeIndex,
     target_file: PathBuf,
     sources: Vec<(PathBuf, String)>,
     stdout: PathBuf,
     stderr: PathBuf,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool, Arc<dyn std::error::Error>> {
     let mut binding = Command::new("gcc");
     let binding = binding
         .args(sources.iter().map(|(s, _)| s).collect::<Vec<_>>())
         .arg("-o")
         .arg(target_file)
-        .current_dir(&sandbox)
-        .current_dir(&sandbox)
+        .current_dir(&sandArc)
+        .current_dir(&sandArc)
         .stdout(std::fs::File::create(stdout)?)
         .stderr(std::fs::File::create(stderr)?);
     let child = binding;
@@ -126,7 +126,7 @@ pub fn c_file_scan(
     _stdout: PathBuf,
     _stderr: PathBuf,
     // include_path: Vec<PathBuf>,
-) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>> {
     log::info!("scan {:?}", target);
     let mut src_target = srcdir.clone();
     src_target.push(target);

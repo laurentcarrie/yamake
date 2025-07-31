@@ -15,9 +15,9 @@ use crate::model as M;
 // use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 
-pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
+pub fn mount(g: &M::G) -> Result<bool, Arc<dyn std::error::Error>> {
     log::info!("mount");
-    std::fs::create_dir_all(&g.sandbox)?;
+    std::fs::create_dir_all(&g.sandArc)?;
 
     for id in g.g.node_indices() {
         let _n = g.g.node_weight(id).ok_or("huh ?")?;
@@ -44,14 +44,14 @@ pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
                 );
                 return Err(msg.into());
             }
-            let mut target_in_sandbox = g.sandbox.clone();
-            target_in_sandbox.push(&n.target());
+            let mut target_in_sandArc = g.sandArc.clone();
+            target_in_sandArc.push(&n.target());
 
-            log::info!("MOUNT {:?} => {:?}", target_in_srcdir, target_in_sandbox);
-            std::fs::create_dir_all(target_in_sandbox.parent().ok_or("no parent ?")?)?;
+            log::info!("MOUNT {:?} => {:?}", target_in_srcdir, target_in_sandArc);
+            std::fs::create_dir_all(target_in_sandArc.parent().ok_or("no parent ?")?)?;
             std::fs::copy(
                 target_in_srcdir.clone().as_os_str(),
-                target_in_sandbox.as_os_str(),
+                target_in_sandArc.as_os_str(),
             )?;
         }
     }
@@ -61,13 +61,13 @@ pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
 
 async fn build_node(
     tx: mpsc::Sender<(NodeIndex, M::BuildType)>,
-    sandbox: PathBuf,
+    sandArc: PathBuf,
     n: &impl M::GNode,
     sources: Vec<(PathBuf, String)>,
     ni: NodeIndex,
     // build: M::BuildFn,
 ) -> () {
-    let mut logpath = sandbox.clone();
+    let mut logpath = sandArc.clone();
     logpath.push("log");
     std::fs::create_dir_all(&logpath).expect("should be able to create logs dir");
 
@@ -84,7 +84,7 @@ async fn build_node(
     };
     unimplemented!();
     // let bt = match (build)(
-    //     sandbox.clone(),
+    //     sandArc.clone(),
     //     ni,
     //     target.clone(),
     //     sources,
@@ -118,7 +118,7 @@ pub async fn make(
     g: &mut M::G,
     _force_rebuild: bool,
     nb_workers: u32,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Arc<dyn std::error::Error>> {
     mount(g)?;
     let (tx, mut rx) = mpsc::channel::<(NodeIndex, M::BuildType)>(1000);
 
@@ -275,17 +275,17 @@ pub async fn make(
                                 .collect::<Result<Vec<_>, _>>()?
                                 .into_iter()
                                 .map(|x| {
-                                    let mut target = g.sandbox.clone();
+                                    let mut target = g.sandArc.clone();
                                     target.push(x.target().clone());
                                     (target, x.tag().clone())
                                 })
                                 .collect::<Vec<_>>();
 
                         // tx.send(n).await.unwrap();
-                        let mut target = g.sandbox.clone();
+                        let mut target = g.sandArc.clone();
                         target.push(node.target().clone());
                         unimplemented!();
-                        // set.spawn(build_node(tx.clone(), g.sandbox.clone(), node, sources, n));
+                        // set.spawn(build_node(tx.clone(), g.sandArc.clone(), node, sources, n));
                         // // break 'outer;
                     } else {
                         log::info!(
@@ -357,7 +357,7 @@ pub async fn make(
     Ok(())
 }
 
-pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn scan(g: &mut M::G) -> Result<(), Arc<dyn std::error::Error>> {
     let id_text = |id: NodeIndex| -> String {
         format!("{:3}", id.index())
             .hex("#8B008B")
@@ -372,10 +372,10 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
         .unwrap(),
     );
 
-    let mut logpath = g.sandbox.clone();
+    let mut logpath = g.sandArc.clone();
     logpath.push("log");
 
-    let mut nodes_to_scan: Vec<(NodeIndex, &Box<dyn M::GNode>)> = Vec::new();
+    let mut nodes_to_scan: Vec<(NodeIndex, &Arc<dyn M::GNode>)> = Vec::new();
     for ni in g.g.node_indices() {
         if g.g.edges_directed(ni, Incoming).count() as u32 == 0 {
             let n = &g.g.node_weight(ni).ok_or("huh ?")?;
@@ -413,7 +413,7 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
                 }
                 Err(_) => {
                     log::warn!("could resolve dep {:?}", p);
-                    // if a scanned dependency does not exist, then it will not be copied to the sandbox and the build will fail
+                    // if a scanned dependency does not exist, then it will not be copied to the sandArc and the build will fail
                 }
             }
         }

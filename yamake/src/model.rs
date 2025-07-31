@@ -5,13 +5,13 @@ use std::path::PathBuf;
 
 use petgraph::graph::NodeIndex;
 
-// pub type BuildFnx = Box<
+// pub type BuildFnx = Arc<
 //     dyn Fn(
 //         PathBuf,
 //         Vec<(PathBuf, String)>,
-//     ) -> BoxFuture<'static, Result<bool, Box<dyn std::error::Error>>>,
+//     ) -> ArcFuture<'static, Result<bool, Arc<dyn std::error::Error>>>,
 // >;
-// type StoredFn = Box<dyn Fn(i32, i32) -> BoxFuture<'static, i32>>;
+// type StoredFn = Arc<dyn Fn(i32, i32) -> ArcFuture<'static, i32>>;
 
 // pub type BuildFn = fn(
 //     PathBuf,
@@ -20,7 +20,7 @@ use petgraph::graph::NodeIndex;
 //     Vec<(PathBuf, String)>,
 //     PathBuf,
 //     PathBuf,
-// ) -> Result<bool, Box<dyn std::error::Error>>;
+// ) -> Result<bool, Arc<dyn std::error::Error>>;
 
 pub struct Data {
     pub target: PathBuf,
@@ -29,7 +29,7 @@ pub struct Data {
 pub trait GNode {
     fn build(
         &self,
-        sandbox: PathBuf,
+        sandArc: PathBuf,
         sources: Vec<PathBuf>,
         deps: Vec<PathBuf>,
         stdout: PathBuf,
@@ -40,31 +40,31 @@ pub trait GNode {
         &self,
         srcdir: PathBuf,
         source: PathBuf,
-    ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>>;
+    ) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>>;
 
     fn target(&self) -> PathBuf;
     fn tag(&self) -> String;
 }
 
 // pub type ScanFn =
-//     fn(PathBuf, PathBuf, PathBuf, PathBuf) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>>;
+//     fn(PathBuf, PathBuf, PathBuf, PathBuf) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>>;
 
 // pub fn convert_fn<
-//     Fut: Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send + 'static,
+//     Fut: Future<Output = Result<bool, Arc<dyn std::error::Error>>> + Send + 'static,
 // >(
 //     f: impl Fn(PathBuf, Vec<(PathBuf, String)>) -> Fut + 'static,
 // ) -> BuildFnx {
-//     Box::new(move |a, b| Box::pin(f(a, b)))
+//     Arc::new(move |a, b| Arc::pin(f(a, b)))
 // }
 
 // fn do_nothing(
-//     _sandbox: PathBuf,
+//     _sandArc: PathBuf,
 //     _ni: NodeIndex,
 //     _target: PathBuf,
 //     _sources: Vec<(PathBuf, String)>,
 //     _stdout: PathBuf,
 //     _stderr: PathBuf,
-// ) -> Result<bool, Box<dyn std::error::Error>> {
+// ) -> Result<bool, Arc<dyn std::error::Error>> {
 //     Ok(true)
 // }
 
@@ -73,11 +73,11 @@ pub trait GNode {
 //     _target: PathBuf,
 //     _stdout: PathBuf,
 //     _stderr: PathBuf,
-// ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+// ) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>> {
 //     Ok(vec![])
 // }
 
-// pub type MessageProcessor = fn(&str, mpsc::Sender<String>) -> BoxFuture<'static, ()>;
+// pub type MessageProcessor = fn(&str, mpsc::Sender<String>) -> ArcFuture<'static, ()>;
 
 // #[derive(Debug)]
 // pub struct N {
@@ -109,19 +109,19 @@ pub struct E {
 
 pub struct G {
     pub srcdir: PathBuf,
-    pub sandbox: PathBuf,
+    pub sandArc: PathBuf,
     // pub map: HashMap<PathBuf, NodeIndex>,
-    pub g: petgraph::Graph<Box<dyn GNode>, E>,
+    pub g: petgraph::Graph<Arc<dyn GNode>, E>,
 }
 
 impl G {
-    pub fn new(srcdir: PathBuf, sandbox: PathBuf) -> Result<G, Box<dyn std::error::Error>> {
-        let g: Graph<Box<dyn GNode>, E> = Graph::new();
+    pub fn new(srcdir: PathBuf, sandArc: PathBuf) -> Result<G, Arc<dyn std::error::Error>> {
+        let g: Graph<Arc<dyn GNode>, E> = Graph::new();
         // let map: HashMap<PathBuf, NodeIndex> = HashMap::new();
         let srcdir = srcdir.canonicalize()?;
-        log::info!("{}:{} ; {:?}", file!(), line!(), sandbox);
-        let sandbox = sandbox.canonicalize().expect(
-            "could not canonicalize sandbox path, please create it first"
+        log::info!("{}:{} ; {:?}", file!(), line!(), sandArc);
+        let sandArc = sandArc.canonicalize().expect(
+            "could not canonicalize sandArc path, please create it first"
                 .hex("#FF1493")
                 .on_hex("#F0FFFF")
                 .bold()
@@ -129,11 +129,11 @@ impl G {
         );
         log::info!("{}:{}", file!(), line!());
 
-        std::fs::create_dir_all(&sandbox)?;
+        std::fs::create_dir_all(&sandArc)?;
         Ok(G {
             g,
             srcdir,
-            sandbox,
+            sandArc,
             // map,
         })
     }
@@ -141,7 +141,7 @@ impl G {
     pub fn add_node<T: GNode + 'static>(
         &mut self,
         n: T, // build: BuildFn,
-    ) -> Result<NodeIndex, Box<dyn std::error::Error>> {
+    ) -> Result<NodeIndex, Arc<dyn std::error::Error>> {
         log::info!("add node {:?}", n.target());
         let existing = self.ni_of_path(n.target());
         if existing.is_ok() {
@@ -149,11 +149,11 @@ impl G {
             log::error!("{}", msg);
             return Err(msg.into());
         }
-        let ni = self.g.try_add_node(Box::new(n))?;
+        let ni = self.g.try_add_node(Arc::new(n))?;
         Ok(ni)
     }
 
-    pub fn ni_of_path(&self, p: PathBuf) -> Result<NodeIndex, Box<dyn std::error::Error>> {
+    pub fn ni_of_path(&self, p: PathBuf) -> Result<NodeIndex, Arc<dyn std::error::Error>> {
         for ni in self.g.node_indices() {
             let n = self.g.node_weight(ni).ok_or(format!(
                 "node {} not found",
@@ -170,7 +170,7 @@ impl G {
         &mut self,
         pto: PathBuf,
         pfrom: PathBuf,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Arc<dyn std::error::Error>> {
         let nito = self.ni_of_path(pto.clone())?;
         let nifrom = self.ni_of_path(pfrom.clone())?;
 
@@ -190,12 +190,12 @@ impl G {
         &mut self,
         force_rebuild: bool,
         nb_workers: u32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Arc<dyn std::error::Error>> {
         crate::run::make(self, force_rebuild, nb_workers).await?;
         Ok(())
     }
 
-    pub async fn scan(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn scan(&mut self) -> Result<(), Arc<dyn std::error::Error>> {
         // crate::run::make(self, true, 4, ETraverse::Scan).await?;
         crate::run::scan(self).await?;
         Ok(())

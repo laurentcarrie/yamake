@@ -5,7 +5,7 @@ pub fn c_file_scan(
     srcdir: PathBuf,
     target: PathBuf,
     include_paths: Vec<PathBuf>,
-) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+) -> Result<Vec<PathBuf>, Arc<dyn std::error::Error>> {
     log::info!("scan {:?}", target);
     let mut src_target = srcdir.clone();
     src_target.push(target);

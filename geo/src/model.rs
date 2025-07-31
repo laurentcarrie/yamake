@@ -118,17 +118,17 @@ pub struct EG {}
 
 pub trait TN {}
 pub struct MyGraph {
-    nodes: Vec<Box<dyn TNamedQuadrilatere>>,
+    nodes: Vec<Arc<dyn TNamedQuadrilatere>>,
     // nodes: HashMap<N, P::graph::NodeIndex>,
     //indices: HashMap<P::graph::NodeIndex, N>,
-    pub g: P::graph::Graph<Box<dyn TNamedQuadrilatere>, EG, P::Directed>,
+    pub g: P::graph::Graph<Arc<dyn TNamedQuadrilatere>, EG, P::Directed>,
 }
 
 impl MyGraph {
     // impl<N: std::fmt::Debug + ?Sized> MyGraph<N> {
     pub fn new() -> MyGraph {
         MyGraph {
-            nodes: Vec::<Box<dyn TNamedQuadrilatere>>::new(),
+            nodes: Vec::<Arc<dyn TNamedQuadrilatere>>::new(),
             // nodesh: HashMap::<N, P::graph::NodeIndex>::new(),
             g: P::graph::Graph::new(),
             // indices: HashMap::<P::graph::NodeIndex, N>::new(),
@@ -141,15 +141,15 @@ impl MyGraph {
     pub fn add_node<T: TNamedQuadrilatere + 'static + Copy>(
         &mut self,
         n: &T,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let ni = self.g.try_add_node(Box::new(*n))?;
+    ) -> Result<(), Arc<dyn std::error::Error>> {
+        let ni = self.g.try_add_node(Arc::new(*n))?;
         println!("--- add node {}", n.name());
-        self.nodes.push(Box::new(n.clone()));
+        self.nodes.push(Arc::new(n.clone()));
         // self.indices.insert(ni, n.clone());
         Ok(())
     }
 
-    // pub fn add_edge(&mut self, nfrom: N, nto: N) -> Result<(), Box<dyn std::error::Error>> {
+    // pub fn add_edge(&mut self, nfrom: N, nto: N) -> Result<(), Arc<dyn std::error::Error>> {
     //     let _ni = self.g.try_add_edge(
     //         *self.try_get_ni_from_node(&nfrom)?,
     //         *self.try_get_ni_from_node(&nto)?,

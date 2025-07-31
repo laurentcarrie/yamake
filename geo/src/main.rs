@@ -20,7 +20,7 @@ fn main() {
 
     // let b = M::X { q: a, yyy: 42 };
 
-    let v: Vec<Box<dyn M::TNamedQuadrilatere>> = vec![Box::new(a), Box::new(r)];
+    let v: Vec<Arc<dyn M::TNamedQuadrilatere>> = vec![Arc::new(a), Arc::new(r)];
     // let v2 = v.clone();
     // for x in v {
     //     // M::my_print::<dyn M::TNamedQuadrilatere>(&x);
