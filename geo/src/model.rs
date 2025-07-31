@@ -129,7 +129,7 @@ impl MyGraph {
     pub fn new() -> MyGraph {
         MyGraph {
             nodes: Vec::<Box<dyn TNamedQuadrilatere>>::new(),
-            // nodes: HashMap::<N, P::graph::NodeIndex>::new(),
+            // nodesh: HashMap::<N, P::graph::NodeIndex>::new(),
             g: P::graph::Graph::new(),
             // indices: HashMap::<P::graph::NodeIndex, N>::new(),
         }

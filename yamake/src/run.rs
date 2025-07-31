@@ -1,7 +1,6 @@
 use colored_text::Colorize;
 use log;
-use std::fs::File;
-use std::io::Write;
+use petgraph::Direction::Incoming;
 use std::path::PathBuf;
 use tokio::sync::mpsc;
 
@@ -21,7 +20,7 @@ pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
     std::fs::create_dir_all(&g.sandbox)?;
 
     for id in g.g.node_indices() {
-        let n = g.g.node_weight(id).ok_or("huh ?")?;
+        let _n = g.g.node_weight(id).ok_or("huh ?")?;
         if g.g
             .neighbors_directed(id, petgraph::Direction::Incoming)
             .count()
@@ -29,8 +28,10 @@ pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
         {
             log::info!("mount {:?}", id);
             let n = g.g.node_weight(id).ok_or("huh ?")?;
+            log::info!("mount {:?}", n.target());
+
             let mut target_in_srcdir = g.srcdir.clone();
-            target_in_srcdir.push(&n.target);
+            target_in_srcdir.push(&n.target());
             if !target_in_srcdir.exists() {
                 let msg = format!(
                     r###"""
@@ -39,12 +40,12 @@ pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
                 - it is a source file that does not exist, check typos or create it
                 - it is a built file, add a link between this node and its predecessors
                 """###,
-                    n.target.display().hex("#FF1493").on_hex("#F0FFFF").bold(),
+                    n.target().display().hex("#FF1493").on_hex("#F0FFFF").bold(),
                 );
                 return Err(msg.into());
             }
             let mut target_in_sandbox = g.sandbox.clone();
-            target_in_sandbox.push(&n.target);
+            target_in_sandbox.push(&n.target());
 
             log::info!("MOUNT {:?} => {:?}", target_in_srcdir, target_in_sandbox);
             std::fs::create_dir_all(target_in_sandbox.parent().ok_or("no parent ?")?)?;
@@ -59,62 +60,62 @@ pub fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
 }
 
 async fn build_node(
-    tx: mpsc::Sender<(NodeIndex, M::BuildType)>,
+    _tx: mpsc::Sender<(NodeIndex, M::BuildType)>,
     sandbox: PathBuf,
-    target: PathBuf,
-    sources: Vec<(PathBuf, String)>,
+    _n: impl M::GNode,
+    _sources: Vec<(PathBuf, String)>,
     ni: NodeIndex,
-    build: M::BuildFn,
+    // build: M::BuildFn,
 ) -> () {
     let mut logpath = sandbox.clone();
     logpath.push("log");
     std::fs::create_dir_all(&logpath).expect("should be able to create logs dir");
 
-    let stdout = {
+    let _stdout = {
         let mut p = logpath.clone();
         p.push(format!("{}-stdout.log", ni.index()));
         p
     };
 
-    let stderr = {
+    let _stderr = {
         let mut p = logpath.clone();
         p.push(format!("{}-sterr.log", ni.index()));
         p
     };
+    unimplemented!();
+    // let bt = match (build)(
+    //     sandbox.clone(),
+    //     ni,
+    //     target.clone(),
+    //     sources,
+    //     stdout.clone(),
+    //     stderr.clone(),
+    // ) {
+    //     Ok(success) => {
+    //         if success {
+    //             // process ran and exited with code 0
+    //             M::BuildType::Rebuilt(target)
+    //         } else {
+    //             // process ran and exited with code != 0
+    //             M::BuildType::Failed
+    //         }
+    //     }
+    //     Err(e) => {
+    //         log::error!("{}", e);
+    //         let _x = std::fs::write(stderr.clone(), format!("{}", e)).expect("write to stderr");
 
-    let bt = match (build)(
-        sandbox.clone(),
-        ni,
-        target.clone(),
-        sources,
-        stdout.clone(),
-        stderr.clone(),
-    ) {
-        Ok(success) => {
-            if success {
-                // process ran and exited with code 0
-                M::BuildType::Rebuilt(target)
-            } else {
-                // process ran and exited with code != 0
-                M::BuildType::Failed
-            }
-        }
-        Err(e) => {
-            log::error!("{}", e);
-            let _x = std::fs::write(stderr.clone(), format!("{}", e)).expect("write to stderr");
+    //         M::BuildType::Failed
+    //     }
+    // };
 
-            M::BuildType::Failed
-        }
-    };
-
-    match tx.send((ni, bt)).await {
-        Ok(()) => (),
-        Err(e) => log::error!("failed to send node index: {:?} {}", ni, e),
-    };
+    // match tx.send((ni, bt)).await {
+    //     Ok(()) => (),
+    //     Err(e) => log::error!("failed to send node index: {:?} {}", ni, e),
+    // };
 }
 
 pub async fn make(
-    g: &M::G,
+    g: &mut M::G,
     _force_rebuild: bool,
     nb_workers: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -122,6 +123,8 @@ pub async fn make(
     let (tx, mut rx) = mpsc::channel::<(NodeIndex, M::BuildType)>(1000);
 
     let mut set: JoinSet<()> = JoinSet::new();
+
+    g.scan().await?;
 
     // let g: petgraph::Graph<M::N, M::E> = g.g;
 
@@ -238,7 +241,7 @@ pub async fn make(
                         }
                     }
                     if an_ancestor_failed {
-                        log::info!("ANCESTOR FAILED === > {:?} ; {:?}", node, n);
+                        log::info!("ANCESTOR FAILED === > {:?} ; {:?}", node.target(), n);
                         pending.remove(&n);
                         ancestor_failed.insert(n);
                         match tx.send((n, M::BuildType::AncestorFailed)).await {
@@ -263,7 +266,7 @@ pub async fn make(
                     //         Err(e) => log::error!("failed to send node index: {:?} {}", n, e),
                     //     };
                     } else if ok_to_start {
-                        log::info!("START === > node {:?} ; id {:?}", node, n);
+                        log::info!("START === > node {:?} ; id {:?}", node.target(), n);
                         pending.remove(&n);
                         running.insert(n);
                         let sources =
@@ -273,28 +276,29 @@ pub async fn make(
                                 .into_iter()
                                 .map(|x| {
                                     let mut target = g.sandbox.clone();
-                                    target.push(x.target.clone());
-                                    (target, x.tag.clone())
+                                    target.push(x.target().clone());
+                                    (target, x.tag().clone())
                                 })
                                 .collect::<Vec<_>>();
 
                         // tx.send(n).await.unwrap();
                         let mut target = g.sandbox.clone();
-                        target.push(node.target.clone());
+                        target.push(node.target().clone());
 
-                        set.spawn(build_node(
-                            tx.clone(),
-                            g.sandbox.clone(),
-                            target,
-                            sources,
-                            n,
-                            node.build,
-                        ));
-                        // break 'outer;
+                        unimplemented!();
+                        // set.spawn(build_node(
+                        //     tx.clone(),
+                        //     g.sandbox.clone(),
+                        //     target,
+                        //     sources,
+                        //     n,
+                        //     node.build,
+                        // ));
+                        // // break 'outer;
                     } else {
                         log::info!(
                             "node not ready : {:?} ; ok_to_start:{}, an_ancestor_failed:{}, an_ancestor_changed:{}",
-                            node,
+                            node.target(),
                             ok_to_start,
                             an_ancestor_failed,
                             an_ancestor_changed
@@ -312,7 +316,12 @@ pub async fn make(
                 M::BuildType::Rebuilt(target) => {
                     rebuilt.insert(li.0);
                     built_targets.insert(li.0, target);
-                    pb.println(format!("{} {} {:?} ", id_text(li.0), done_text, node));
+                    pb.println(format!(
+                        "{} {} {:?} ",
+                        id_text(li.0),
+                        done_text,
+                        node.target()
+                    ));
                 }
                 M::BuildType::NotTouched(target) => {
                     skipped.insert(li.0);
@@ -325,7 +334,7 @@ pub async fn make(
                         "{} {} node {:?} ",
                         id_text(li.0),
                         failed_text,
-                        node
+                        node.target()
                     ));
                 }
                 M::BuildType::AncestorFailed => {
@@ -340,12 +349,16 @@ pub async fn make(
 
     for ni in ancestor_failed {
         let node = g.g.node_weight(ni).ok_or("huh, no node?")?;
-        pb.println(format!("{} node {:?} ", ancestor_failed_text, node));
+        pb.println(format!(
+            "{} node {:?} ",
+            ancestor_failed_text,
+            node.target()
+        ));
     }
 
     for ni in failed {
         let node = g.g.node_weight(ni).ok_or("huh, no node?")?;
-        pb.println(format!("{} node {:?} ", failed_text, node));
+        pb.println(format!("{} node {:?} ", failed_text, node.target()));
     }
     pb.finish_with_message("done");
 
@@ -370,21 +383,17 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
     let mut logpath = g.sandbox.clone();
     logpath.push("log");
 
-    let mut nodes_to_scan: Vec<NodeIndex> = Vec::new();
-    for (_, ni) in &g.map {
-        // let n = g.g.node_weight_mut(*ni).ok_or("huh ?")?;
-        if g.g
-            .neighbors_directed(*ni, petgraph::Direction::Incoming)
-            .count()
-            == 0
-        {
-            nodes_to_scan.push(*ni);
+    let mut nodes_to_scan: Vec<(NodeIndex, &Box<dyn M::GNode>)> = Vec::new();
+    for ni in g.g.node_indices() {
+        if g.g.edges_directed(ni, Incoming).count() as u32 == 0 {
+            let n = &g.g.node_weight(ni).ok_or("huh ?")?;
+
+            nodes_to_scan.push((ni, n));
         }
     }
-
     let mut edges_to_add: Vec<(NodeIndex, NodeIndex)> = Vec::new();
-    for ni in nodes_to_scan {
-        let n = g.g.node_weight_mut(ni).ok_or("huh ?")?;
+
+    for (ni, n) in nodes_to_scan {
         let stdout = {
             let mut p = logpath.clone();
             p.push(format!("{}-stdout-scan.log", ni.index()));
@@ -396,22 +405,27 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
             p.push(format!("{}-sterr-scan.log", ni.index()));
             p
         };
-        let scanned_deps = (&n.scan)(
-            g.srcdir.clone(),
-            n.target.clone(),
-            stdout.clone(),
-            stderr.clone(),
-        )?;
-        for s in scanned_deps {
-            if let Some(ni_dep) = &g.map.get(&s.clone()) {
-                log::info!("add edge");
-                edges_to_add.push((**ni_dep, ni));
-            } else {
-                log::warn!("could resolve dep {:?}", s);
-                // if a scanned dependency does not exist, then it will not be copied to the sandbox and the build will fail
+
+        let scanned_deps = &n.scan(g.srcdir.clone(), n.target().clone())?;
+        log::info!(
+            "found {} deps for node {:?}",
+            scanned_deps.len(),
+            n.target()
+        );
+        for p in scanned_deps {
+            // let p = p.strip_prefix(g.srcdir)?.to_path_buf();
+            match &g.ni_of_path(p.clone()) {
+                Ok(ni_dep) => {
+                    log::info!("add scanned edge {:?} => {:?}", *ni_dep, ni);
+                    edges_to_add.push((*ni_dep, ni));
+                }
+                Err(_) => {
+                    log::warn!("could resolve dep {:?}", p);
+                    // if a scanned dependency does not exist, then it will not be copied to the sandbox and the build will fail
+                }
             }
         }
-        pb.println(format!("{:3} scan node {:?} ", id_text(ni), &n));
+        pb.println(format!("{:3} scan node {:?} ", id_text(ni), &n.target()));
         pb.inc(1);
     }
 

@@ -41,8 +41,8 @@ fn main() {
     g.g.add_edge(NodeIndex::new(0), NodeIndex::new(1), M::EG {});
 
     for ni in g.g.node_indices() {
-        let n = g.g.node_weight(ni).unwrap() ;
-        println!("name : {}",n.name()) ;
+        let n = g.g.node_weight(ni).unwrap();
+        println!("name : {}", n.name());
     }
 
     // for demo or debug, output the tree

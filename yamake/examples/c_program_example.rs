@@ -1,5 +1,6 @@
 use argh::FromArgs;
 use log;
+use petgraph::Direction::Incoming;
 use simple_logging;
 // use tokio::process::Child;
 use std::path::PathBuf;
@@ -10,7 +11,10 @@ use petgraph::dot::Dot;
 use yamake::model as M;
 use yamake::run::make;
 
-use yamake::c_build::{c_file_scan, exe_from_obj_files, object_file_from_cfile};
+use yamake::c_project::c_file::Cfile;
+use yamake::c_project::h_file::Hfile;
+use yamake::c_project::o_file::Ofile;
+use yamake::c_project::x_file::Xfile;
 
 pub struct CSource;
 
@@ -41,8 +45,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cli: Cli = argh::from_env();
 
-    let srcdir = PathBuf::from(cli.srcdir);
-    let sandbox = PathBuf::from(cli.sandbox);
+    let srcdir = PathBuf::from(cli.srcdir)
+        .canonicalize()
+        .expect("canonicalize srcdir");
+    let sandbox = PathBuf::from(cli.sandbox)
+        .canonicalize()
+        .expect("canonicalize sandbox");
 
     let mut g = M::G::new(srcdir.clone(), sandbox.clone())?;
 
@@ -52,52 +60,60 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // we also add the .h
     // populate the graph with source code.
     // in this demo, we walk in the srcdir and add all the .c and .h files
-    for entry in WalkDir::new(srcdir).into_iter() {
+    for entry in WalkDir::new(&srcdir).into_iter() {
         if let Ok(entry) = entry
             && entry.path().is_file()
         {
+            let p = entry.path().to_path_buf().canonicalize()?;
+            let p = p
+                .strip_prefix(&srcdir)
+                .expect(format!("strip {:?}", p).as_str())
+                .to_path_buf();
+
             if let Some(s) = entry.path().extension() {
                 match s.to_str() {
-                    Some("c") => g.add_root_node(
-                        entry.path().to_path_buf(),
-                        "c file".to_string(),
-                        c_file_scan,
-                    )?,
-                    Some("h") => g.add_root_node(
-                        entry.path().to_path_buf(),
-                        "h file".to_string(),
-                        c_file_scan,
-                    )?,
+                    Some("c") => {
+                        g.add_node(Cfile::new(p, include_paths.clone())?)?;
+                        ()
+                    }
+                    Some("h") => {
+                        g.add_node(Hfile::new(p, include_paths.clone())?)?;
+                        ()
+                    }
                     s => log::info!("ignored entry : {:?}", s),
                 }
             }
         }
     }
 
-    // as in Makefile where .c.o is an implicit rule,
-    // for each .c file we add a .o file the explicit dependecy and the build function
-    for (source, _nid) in g.map.clone() {
-        if source.extension().map(|x| x.to_str()).flatten() == Some("c") {
-            let target = source.with_extension("o");
-            g.add_node(target.clone(), "o file".to_string(), object_file_from_cfile)?;
-            g.add_edge(target.clone(), target.clone().with_extension("c"))?;
+    {
+        // as in Makefile where .c.o is an implicit rule,
+
+        // for each .c file we add a .o file the explicit dependecy and the build function
+        // unimplemented!();
+
+        let mut oc_files: Vec<(PathBuf, PathBuf)> = Vec::new();
+        for ni in g.g.node_indices() {
+            if g.g.edges_directed(ni, Incoming).count() == 0 {
+                let n = g.g.node_weight(ni).ok_or("huh")?;
+                if n.tag() == "c file" {
+                    oc_files.push((n.target(), n.target().with_extension("o")));
+                }
+            }
+        }
+        for (c, o) in oc_files {
+            g.add_node(Ofile::new(o.clone())?)?;
+            g.add_edge(o, c)?;
         }
     }
 
     // as in a Makefile, explicit how your executable depends on sources
     let exe = PathBuf::from("project_1/demo");
-    g.add_node(exe.clone(), "x file".to_string(), exe_from_obj_files)?;
+    g.add_node(Xfile::new(exe.clone())?)?;
     g.add_edge(exe.clone(), PathBuf::from("project_1/main.o"))?;
     g.add_edge(exe.clone(), PathBuf::from("project_1/add.o"))?;
 
-    // add scanned dependencies
-    match g.scan().await {
-        Ok(()) => (),
-        Err(e) => {
-            println!("{}", e.to_string());
-            std::process::exit(1)
-        }
-    }
+    g.scan().await?;
 
     // for demo or debug, output the tree
     let basic_dot = Dot::new(&g.g);

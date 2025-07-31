@@ -2,14 +2,61 @@ use log;
 // use tokio::process::Child;
 use std::path::PathBuf;
 // use tokio::process::Command;
-use crate::util::logstream;
+use crate::model as M;
 use petgraph::graph::NodeIndex;
 use regex::Regex;
 use std::process::Command;
 
-use crate::model as M;
+#[derive(Debug, Clone)]
+pub struct Xfile {
+    target: PathBuf,
+}
 
-pub fn object_file_from_cfile(
+impl Xfile {
+    pub fn new(target: PathBuf) -> Result<Xfile, Box<dyn std::error::Error>> {
+        // let target = target.as_os_str().to_str().ok_or("bad string")?.to_string();
+        Ok(Xfile { target })
+    }
+}
+
+impl M::GNode for Xfile {
+    fn build(
+        &self,
+        _sandbox: PathBuf,
+        _sources: Vec<PathBuf>,
+        _deps: Vec<PathBuf>,
+        _stdout: PathBuf,
+        _stderr: PathBuf,
+    ) -> bool {
+        unimplemented!()
+    }
+
+    fn scan(
+        &self,
+        _srcdir: PathBuf,
+        _source: PathBuf,
+    ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+        unimplemented!()
+    }
+
+    fn target(&self) -> PathBuf {
+        PathBuf::from(self.target.clone())
+    }
+    fn tag(&self) -> String {
+        "x file".to_string()
+    }
+}
+
+// impl std::fmt::Debug for N {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         f.debug_struct("Node")
+//             .field("target", &self.target)
+//             .field("tag", &self.tag)
+//             .finish()
+//     }
+// }
+
+pub fn object_file_from_Xfile(
     sandbox: PathBuf,
     id: NodeIndex,
     target_file: PathBuf,
