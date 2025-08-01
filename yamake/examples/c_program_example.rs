@@ -9,13 +9,11 @@ use walkdir::WalkDir;
 
 use petgraph::dot::Dot;
 use yamake::model as M;
-use yamake::run::make;
 
 use yamake::c_project::c_file::Cfile;
 use yamake::c_project::h_file::Hfile;
 use yamake::c_project::o_file::Ofile;
 use yamake::c_project::x_file::Xfile;
-use yamake::model::GNode;
 
 use petgraph::graph::NodeIndex;
 

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-pub fn object_file_from_cfile(
+pub(crate) fn object_file_from_cfile(
     sandbox: PathBuf,
     target_file: PathBuf,
     sources: Vec<(PathBuf, String)>,

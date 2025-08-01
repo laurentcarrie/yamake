@@ -50,4 +50,7 @@ impl M::GNode for Hfile {
     fn tag(&self) -> String {
         "h file".to_string()
     }
+    fn id(&self) -> String {
+        self.target().to_str().expect("target to str").to_string()
+    }
 }

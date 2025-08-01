@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-pub fn exe_from_obj_files(
+/// implementation of linking object files to get an exe :
+/// gcc a.o b.o c.o -o myexe
+/// @todo : link flags, static libs, shared objects
+pub(crate) fn exe_from_obj_files(
     sandbox: PathBuf,
     target_file: PathBuf,
     sources: Vec<(PathBuf, String)>,
@@ -13,7 +16,6 @@ pub fn exe_from_obj_files(
         .args(sources.iter().map(|(s, _)| s).collect::<Vec<_>>())
         .arg("-o")
         .arg(target_file)
-        .current_dir(&sandbox)
         .current_dir(&sandbox)
         .stdout(std::fs::File::create(stdout)?)
         .stderr(std::fs::File::create(stderr)?);

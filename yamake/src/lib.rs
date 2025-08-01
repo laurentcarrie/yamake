@@ -1,20 +1,23 @@
-pub mod build;
-pub mod c_project;
+/// the model providing traits for users to implement
 pub mod model;
-pub mod run;
-pub mod util;
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+/// implementation for building C projects.
+/// use it as doc
+pub mod c_project;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub(crate) mod run;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+// pub fn add(left: u64, right: u64) -> u64 {
+//     left + right
+// }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+
+//     #[test]
+//     fn it_works() {
+//         let result = add(2, 2);
+//         assert_eq!(result, 4);
+//     }
+// }

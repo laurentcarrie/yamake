@@ -1,92 +1,52 @@
 use colored_text::Colorize;
 use petgraph::Graph;
-// use std::collections::HashMap;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use petgraph::graph::NodeIndex;
 
-// pub type BuildFnx = Arc<
-//     dyn Fn(
-//         PathBuf,
-//         Vec<(PathBuf, String)>,
-//     ) -> ArcFuture<'static, Result<bool, Box<dyn std::error::Error>>>,
-// >;
-// type StoredFn = Arc<dyn Fn(i32, i32) -> ArcFuture<'static, i32>>;
-
-// pub type BuildFn = fn(
-//     PathBuf,
-//     petgraph::graph::NodeIndex,
-//     PathBuf,
-//     Vec<(PathBuf, String)>,
-//     PathBuf,
-//     PathBuf,
-// ) -> Result<bool, Box<dyn std::error::Error>>;
-
-pub struct Data {
-    pub target: PathBuf,
-}
+/// the trait of a Node in the make graph
+///
 
 pub trait GNode: Send + Sync {
+    /// the function that builds the target file of a node, taking the predecessor nodes as inputs
+    ///
+    /// sandbox: the root of the sandbox directory, you should not need it
+    /// sources: the sources for the build ( the predecessor nodes in the graph )
+    /// stdout: where to write stdout. Pass it to std::process::Command if you call a command
+    /// stderr: where to write stderr
     fn build(
         &self,
-        sandbox: PathBuf,
-        sources: Vec<(PathBuf, String)>,
-        deps: Vec<PathBuf>,
-        stdout: PathBuf,
-        stderr: PathBuf,
-    ) -> bool;
+        _sandbox: PathBuf,
+        _sources: Vec<(PathBuf, String)>,
+        _deps: Vec<PathBuf>,
+        _stdout: PathBuf,
+        _stderr: PathBuf,
+    ) -> bool {
+        panic!(
+            r###"build function of node {:?} was called, but no implementation found "###,
+            self.target()
+        );
+    }
 
     fn scan(
         &self,
-        srcdir: PathBuf,
-        source: PathBuf,
-    ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>>;
+        _srcdir: PathBuf,
+        _source: PathBuf,
+    ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+        panic!(
+            r###"scan function of node {:?} was called, but no implementation found "###,
+            self.target()
+        );
+    }
 
     fn target(&self) -> PathBuf;
     fn tag(&self) -> String;
+
+    // unique id in the graph
+    fn id(&self) -> String;
 }
-
-// pub type ScanFn =
-//     fn(PathBuf, PathBuf, PathBuf, PathBuf) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>>;
-
-// pub fn convert_fn<
-//     Fut: Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send + 'static,
-// >(
-//     f: impl Fn(PathBuf, Vec<(PathBuf, String)>) -> Fut + 'static,
-// ) -> BuildFnx {
-//     Arc::new(move |a, b| Arc::pin(f(a, b)))
-// }
-
-// fn do_nothing(
-//     _sandbox: PathBuf,
-//     _ni: NodeIndex,
-//     _target: PathBuf,
-//     _sources: Vec<(PathBuf, String)>,
-//     _stdout: PathBuf,
-//     _stderr: PathBuf,
-// ) -> Result<bool, Box<dyn std::error::Error>> {
-//     Ok(true)
-// }
-
-// pub fn scan_nothing(
-//     _srcdir: PathBuf,
-//     _target: PathBuf,
-//     _stdout: PathBuf,
-//     _stderr: PathBuf,
-// ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
-//     Ok(vec![])
-// }
-
-// pub type MessageProcessor = fn(&str, mpsc::Sender<String>) -> ArcFuture<'static, ()>;
-
-// #[derive(Debug)]
-// pub struct N {
-//     pub target: PathBuf,
-//     pub tag: String,
-//     // pub build: BuildFn,
-//     // pub scan: ScanFn, // pub build: BuildFn,
-// }
 
 impl std::fmt::Debug for dyn GNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -113,6 +73,7 @@ pub struct G {
     pub sandbox: PathBuf,
     // pub map: HashMap<PathBuf, NodeIndex>,
     pub g: petgraph::Graph<Arc<dyn GNode>, E>,
+    pub map: HashMap<String, Box<dyn GNode>>,
 }
 
 impl G {
@@ -128,6 +89,7 @@ impl G {
                 .bold()
                 .as_str(),
         );
+        let map = HashMap::new();
         log::info!("{}:{}", file!(), line!());
 
         std::fs::create_dir_all(&sandbox)?;
@@ -135,19 +97,22 @@ impl G {
             g,
             srcdir,
             sandbox,
-            // map,
+            map,
         })
     }
 
     pub fn add_node<T: GNode + 'static>(
         &mut self,
-        n: T, // build: BuildFn,
+        n: T,
     ) -> Result<NodeIndex, Box<dyn std::error::Error>> {
+        if self.map.contains_key(&n.id()) {
+            return Err(format!("cannot add node with existing key '{}'", n.id()).into());
+        }
         log::info!("add node {:?}", n.target());
         let existing = self.ni_of_path(n.target());
         if existing.is_ok() {
             let msg = format!("path already exists {:?}", n.target());
-            log::error!("{}", msg);
+            log::error!("{msg}");
             return Err(msg.into());
         }
         let ni = self.g.try_add_node(Arc::new(n))?;
@@ -164,7 +129,7 @@ impl G {
                 return Ok(ni);
             }
         }
-        Err(format!("path not found {:?}", p).into())
+        Err("path not found {p:?}".into())
     }
 
     pub fn add_edge(

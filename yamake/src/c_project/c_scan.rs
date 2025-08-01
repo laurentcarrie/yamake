@@ -2,7 +2,7 @@ use regex::Regex;
 use std::path::PathBuf;
 // use std::sync::Arc;
 
-pub fn c_file_scan(
+pub(crate) fn c_file_scan(
     srcdir: PathBuf,
     target: PathBuf,
     include_paths: Vec<PathBuf>,

@@ -1,11 +1,5 @@
-use log;
-// use tokio::process::Child;
-use std::path::PathBuf;
-// use tokio::process::Command;
 use crate::model as M;
-use petgraph::graph::NodeIndex;
-use regex::Regex;
-use std::process::Command;
+use std::path::PathBuf;
 // use std::sync::Arc;
 use crate::c_project::c_link::exe_from_obj_files;
 
@@ -26,25 +20,17 @@ impl M::GNode for Xfile {
         &self,
         sandbox: PathBuf,
         sources: Vec<(PathBuf, String)>,
-        deps: Vec<PathBuf>,
+        _deps: Vec<PathBuf>,
         stdout: PathBuf,
         stderr: PathBuf,
     ) -> bool {
         match exe_from_obj_files(sandbox, self.target(), sources, stdout, stderr.clone()) {
             Ok(success) => success,
             Err(e) => {
-                std::fs::write(stderr.clone(), format!("{:?}", e));
+                std::fs::write(stderr.clone(), format!("{:?}", e)).expect("write to stderr");
                 false
             }
         }
-    }
-
-    fn scan(
-        &self,
-        _srcdir: PathBuf,
-        _source: PathBuf,
-    ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
-        unimplemented!()
     }
 
     fn target(&self) -> PathBuf {
@@ -52,5 +38,8 @@ impl M::GNode for Xfile {
     }
     fn tag(&self) -> String {
         "x file".to_string()
+    }
+    fn id(&self) -> String {
+        self.target().to_str().expect("target to str").to_string()
     }
 }
