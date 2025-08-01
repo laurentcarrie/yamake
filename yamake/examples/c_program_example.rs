@@ -15,7 +15,7 @@ use yamake::c_project::h_file::Hfile;
 use yamake::c_project::o_file::Ofile;
 use yamake::c_project::x_file::Xfile;
 
-use yamake::target_hash::get_current_hash;
+use yamake::target_hash::get_hash;
 
 use petgraph::graph::NodeIndex;
 
@@ -117,7 +117,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     g.add_edge(exe.clone(), PathBuf::from("project_1/main.o"))?;
     g.add_edge(exe.clone(), PathBuf::from("project_1/add.o"))?;
 
-    get_current_hash(&g)?;
+    get_hash(&g)?;
 
     g.scan().await?;
 
