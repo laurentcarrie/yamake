@@ -15,7 +15,7 @@ use yamake::c_project::h_file::Hfile;
 use yamake::c_project::o_file::Ofile;
 use yamake::c_project::x_file::Xfile;
 
-use yamake::target_hash::get_hash;
+use yamake::target_hash::{get_hash, write_current_hash};
 
 use petgraph::graph::NodeIndex;
 
@@ -143,5 +143,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(()) => (),
         Err(e) => println!("{}", e.to_string()),
     };
+
+    write_current_hash(&g)?;
     Ok(())
 }
