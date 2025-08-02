@@ -74,6 +74,7 @@ pub struct G {
     // pub map: HashMap<PathBuf, NodeIndex>,
     pub g: petgraph::Graph<Arc<dyn GNode>, E>,
     pub map: HashMap<String, Box<dyn GNode>>,
+    pub(crate) needs_rebuild: HashMap<String, bool>,
 }
 
 impl G {
@@ -90,6 +91,7 @@ impl G {
                 .as_str(),
         );
         let map = HashMap::new();
+        let needs_rebuild: HashMap<String, bool> = HashMap::new();
         log::info!("{}:{}", file!(), line!());
 
         std::fs::create_dir_all(&sandbox)?;
@@ -98,6 +100,7 @@ impl G {
             srcdir,
             sandbox,
             map,
+            needs_rebuild,
         })
     }
 
