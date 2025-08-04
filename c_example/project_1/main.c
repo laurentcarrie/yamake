@@ -2,7 +2,10 @@
 #include <stdio.h>
 
 int main() {
-    printf("hello world\n") ;
+
+    printf("hello . fad\n") ;
     int x = add(45,42) ;
     printf("x is %d\n",x) ;
 }
+
+

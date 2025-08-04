@@ -13,6 +13,7 @@ use std::result::Result;
 // use std::time::Duration;
 
 use crate::model as M;
+use crate::target_hash::{compute_needs_rebuild, write_current_hash};
 // use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 
@@ -60,11 +61,13 @@ pub(crate) fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
 }
 
 pub(crate) async fn make(
-    g: &M::G,
+    g: &mut M::G,
     _force_rebuild: bool,
     nb_workers: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
     mount(g)?;
+    compute_needs_rebuild(g)?;
+
     let (tx, mut rx) = mpsc::channel::<(NodeIndex, M::BuildType)>(1000);
 
     let mut set: JoinSet<()> = JoinSet::new();
@@ -175,6 +178,9 @@ pub(crate) async fn make(
                     let mut ok_to_start = true;
                     let mut an_ancestor_failed = false;
                     let mut an_ancestor_changed = false;
+                    let needs_rebuild =
+                        g.needs_rebuild.get(&node.id()).ok_or("rebuilt not found")?;
+                    log::info!("inspect needs rebuild : {} ; {needs_rebuild}", node.id());
 
                     for p in g.g.neighbors_directed(ni, petgraph::Direction::Incoming) {
                         if !rebuilt.contains(&p) && !skipped.contains(&p) {
@@ -198,20 +204,20 @@ pub(crate) async fn make(
                             }
                             Err(e) => log::error!("failed to send node index: {ni:?} {e}"),
                         };
-                    // } else if ok_to_start && !an_ancestor_changed {
-                    //     log::info!("SKIP === > {:?}", node);
-                    //     pending.remove(&ni);
-                    //     skipped.insert(ni);
-                    //     match tx
-                    //         .send((ni, M::BuildType::NotTouched(PathBuf::from(""))))
-                    //         .await
-                    //     {
-                    //         Ok(()) => {
-                    //             // log::info!("ok, sent");
-                    //             ()
-                    //         }
-                    //         Err(e) => log::error!("failed to send node index: {:?} {}", ni, e),
-                    //     };
+                    } else if ok_to_start && !an_ancestor_changed && !needs_rebuild {
+                        log::info!("SKIP === > {:?}", node);
+                        pending.remove(&ni);
+                        skipped.insert(ni);
+                        match tx
+                            .send((ni, M::BuildType::NotTouched(PathBuf::from(""))))
+                            .await
+                        {
+                            Ok(()) => {
+                                // log::info!("ok, sent");
+                                ()
+                            }
+                            Err(e) => log::error!("failed to send node index: {:?} {}", ni, e),
+                        };
                     } else if ok_to_start {
                         log::info!("START === > node {:?} ; id {:?}", node.target(), ni);
                         pending.remove(&ni);
@@ -235,7 +241,13 @@ pub(crate) async fn make(
                         let node = node.clone();
 
                         if g.is_root_node(ni) {
-                            let bt = M::BuildType::NotTouched(node.target().clone());
+                            let needs_rebuild =
+                                g.needs_rebuild.get(&node.id()).ok_or("huh, no node")?;
+                            let bt = if *needs_rebuild {
+                                M::BuildType::Rebuilt(node.target().clone())
+                            } else {
+                                M::BuildType::NotTouched(node.target().clone())
+                            };
                             match tx.send((ni, bt)).await {
                                 Ok(()) => (),
                                 Err(e) => {
@@ -348,6 +360,9 @@ pub(crate) async fn make(
             pb.inc(1);
         }
     }
+    pb.println("writing hashes");
+    // compute_needs_rebuild(&g) ;
+    write_current_hash(&g)?;
 
     pb.println(" --- SUMMARY --- ");
 
