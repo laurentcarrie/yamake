@@ -12,8 +12,8 @@ use std::collections::{HashMap, HashSet};
 use std::result::Result;
 // use std::time::Duration;
 
-use crate::model as M;
 use crate::target_hash::{compute_needs_rebuild, write_current_hash};
+use crate::{model as M, target_hash};
 // use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 
@@ -65,6 +65,11 @@ pub(crate) async fn make(
     _force_rebuild: bool,
     nb_workers: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    // for ni in g.g.node_indices() {
+    //     let n = g.g.node_weight(ni).ok_or("get node")? ;
+    //     g.status.insert(n.id(),M::EStatus::Initial) ;
+    // }
+
     mount(g)?;
     compute_needs_rebuild(g)?;
 
@@ -78,7 +83,9 @@ pub(crate) async fn make(
     // let g: petgraph::Graph<M::N, M::E> = g.g;
 
     // let done_text = "DONE".hex("#8B008B").on_hex("#7FFF00").bold();
-    let built_text = " BUILT ".hex("#7FFF00").bold();
+    let built_text = " BUILT ".hex("#00FFAA").bold();
+    let built_but_not_changed_text = " BBNC ".hex("#FF00AA").bold();
+
     let _not_touched_text = "Skip".hex("#8B008B").on_hex("#7FFFFF").bold();
     let failed_text = "FAILED"
         .hex("#FF1493")
@@ -283,6 +290,10 @@ pub(crate) async fn make(
                                 logpath.push("log");
                                 std::fs::create_dir_all(&logpath).expect("create logs dir");
 
+                                let old_digest =
+                                    target_hash::get_hash_of_node(sandbox.clone(), &node)
+                                        .unwrap_or(None);
+
                                 let success = node.build(
                                     sandbox.clone(),
                                     sources.clone(),
@@ -290,11 +301,21 @@ pub(crate) async fn make(
                                     stdout,
                                     stderr.clone(),
                                 );
-                                // let bt = match res {
-                                //     Ok(success) => {
+
+                                let new_digest =
+                                    target_hash::get_hash_of_node(sandbox.clone(), &node)
+                                        .unwrap_or(None);
+
                                 let bt = if success {
                                     // process ran and exited with code 0
-                                    M::BuildType::Rebuilt(target)
+                                    log::info!("old digest : {old_digest:?}");
+                                    log::info!("new digest : {new_digest:?}");
+
+                                    if old_digest != new_digest {
+                                        M::BuildType::Rebuilt(target)
+                                    } else {
+                                        M::BuildType::RebuiltButUnchanged(target)
+                                    }
                                 } else {
                                     // process ran and exited with code != 0
                                     M::BuildType::Failed
@@ -333,12 +354,23 @@ pub(crate) async fn make(
                     rebuilt.insert(li.0);
                     built_targets.insert(li.0, target);
                     pb.println(format!(
-                        "{} {} {:?} ",
-                        id_text(li.0),
+                        "{} {:?} ",
+                        // id_text(li.0),
                         built_text,
                         node.target()
                     ));
                 }
+                M::BuildType::RebuiltButUnchanged(target) => {
+                    skipped.insert(li.0);
+                    built_targets.insert(li.0, target);
+                    pb.println(format!(
+                        "{} {:?} ",
+                        // id_text(li.0),
+                        built_but_not_changed_text,
+                        node.target()
+                    ));
+                }
+
                 M::BuildType::NotTouched(target) => {
                     skipped.insert(li.0);
                     built_targets.insert(li.0, target);
@@ -347,8 +379,8 @@ pub(crate) async fn make(
                 M::BuildType::Failed => {
                     failed.insert(li.0);
                     pb.println(format!(
-                        "{} {} node {:?} ",
-                        id_text(li.0),
+                        "{} node {:?} ",
+                        // id_text(li.0),
                         failed_text,
                         node.target()
                     ));
@@ -435,8 +467,8 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
 
         let scan_text = "SCANNED".hex("#7FFF00").bold();
         pb.println(format!(
-            "{:3} {scan_text} {:?} -> {} new edge(s)",
-            id_text(ni),
+            "{scan_text} {:?} -> {} new edge(s)",
+            // id_text(ni),
             &n.target(),
             scanned_deps.len()
         ));

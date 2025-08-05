@@ -68,6 +68,20 @@ pub struct E {
     pub kind: EKind,
 }
 
+#[derive(Debug)]
+pub enum EStatus {
+    Initial,
+    MountedChanged,
+    MountedNotChanged,
+    Skipped,
+    Rebuilt,
+    Failed,
+}
+
+pub struct H {
+    old_digest: String,
+}
+
 pub struct G {
     pub srcdir: PathBuf,
     pub sandbox: PathBuf,
@@ -75,6 +89,7 @@ pub struct G {
     pub g: petgraph::Graph<Arc<dyn GNode>, E>,
     pub map: HashMap<String, Box<dyn GNode>>,
     pub(crate) needs_rebuild: HashMap<String, bool>,
+    // pub(crate) status: HashMap<String, EStatus>,
 }
 
 impl G {
@@ -92,7 +107,7 @@ impl G {
         );
         let map = HashMap::new();
         let needs_rebuild: HashMap<String, bool> = HashMap::new();
-        log::info!("{}:{}", file!(), line!());
+        // let status: HashMap<String, EStatus> = HashMap::new();
 
         std::fs::create_dir_all(&sandbox)?;
         Ok(G {
@@ -101,6 +116,7 @@ impl G {
             sandbox,
             map,
             needs_rebuild,
+            // status,
         })
     }
 
@@ -188,6 +204,7 @@ pub enum LogItem {}
 // #[derive(Serialize, Deserialize, PartialEq, Debug, Hash, Clone)]
 pub enum BuildType {
     Rebuilt(PathBuf),
+    RebuiltButUnchanged(PathBuf),
     NotTouched(PathBuf),
     AncestorFailed,
     Failed,
