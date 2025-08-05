@@ -1,5 +1,6 @@
 use colored_text::Colorize;
 use petgraph::Graph;
+use simple_mermaid::mermaid;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -58,7 +59,7 @@ impl std::fmt::Debug for dyn GNode {
 }
 
 #[derive(Debug)]
-pub enum EKind {
+pub(crate) enum EKind {
     Scanned,
     Direct,
 }
@@ -66,20 +67,6 @@ pub enum EKind {
 #[derive(Debug)]
 pub struct E {
     pub kind: EKind,
-}
-
-#[derive(Debug)]
-pub enum EStatus {
-    Initial,
-    MountedChanged,
-    MountedNotChanged,
-    Skipped,
-    Rebuilt,
-    Failed,
-}
-
-pub struct H {
-    old_digest: String,
 }
 
 pub struct G {
@@ -199,10 +186,10 @@ impl G {
     }
 }
 
-pub enum LogItem {}
+pub(crate) enum LogItem {}
 
 // #[derive(Serialize, Deserialize, PartialEq, Debug, Hash, Clone)]
-pub enum BuildType {
+pub(crate) enum BuildType {
     Rebuilt(PathBuf),
     RebuiltButUnchanged(PathBuf),
     NotTouched(PathBuf),

@@ -1,3 +1,12 @@
+//! yamake
+//!
+//!
+#![doc = include_str!("doc.md")]
+
+use simple_mermaid::mermaid;
+
+#[doc = mermaid!("pets.md")]
+
 /// the model providing traits for users to implement
 pub mod model;
 
@@ -7,7 +16,7 @@ pub mod c_project;
 
 pub(crate) mod run;
 
-pub mod target_hash;
+pub(crate) mod target_hash;
 
 // pub fn add(left: u64, right: u64) -> u64 {
 //     left + right

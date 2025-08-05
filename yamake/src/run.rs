@@ -188,6 +188,7 @@ pub(crate) async fn make(
                     let needs_rebuild =
                         g.needs_rebuild.get(&node.id()).ok_or("rebuilt not found")?;
                     log::info!("inspect needs rebuild : {} ; {needs_rebuild}", node.id());
+                    let mut ancestor_targets: Vec<PathBuf> = vec![];
 
                     for p in g.g.neighbors_directed(ni, petgraph::Direction::Incoming) {
                         if !rebuilt.contains(&p) && !skipped.contains(&p) {
@@ -199,6 +200,8 @@ pub(crate) async fn make(
                         if rebuilt.contains(&p) {
                             an_ancestor_changed = true;
                         }
+                        let pn = g.g.node_weight(p).ok_or("hu, no node")?;
+                        ancestor_targets.push(pn.target());
                     }
                     if an_ancestor_failed {
                         log::info!("ANCESTOR FAILED === > {:?} ; {:?}", node.target(), ni);
@@ -290,9 +293,12 @@ pub(crate) async fn make(
                                 logpath.push("log");
                                 std::fs::create_dir_all(&logpath).expect("create logs dir");
 
-                                let old_digest =
-                                    target_hash::get_hash_of_node(sandbox.clone(), &node)
-                                        .unwrap_or(None);
+                                let old_digest = target_hash::get_hash_of_node(
+                                    sandbox.clone(),
+                                    node.target(),
+                                    ancestor_targets.clone(),
+                                )
+                                .unwrap_or(None);
 
                                 let success = node.build(
                                     sandbox.clone(),
@@ -302,9 +308,12 @@ pub(crate) async fn make(
                                     stderr.clone(),
                                 );
 
-                                let new_digest =
-                                    target_hash::get_hash_of_node(sandbox.clone(), &node)
-                                        .unwrap_or(None);
+                                let new_digest = target_hash::get_hash_of_node(
+                                    sandbox.clone(),
+                                    node.target(),
+                                    ancestor_targets,
+                                )
+                                .unwrap_or(None);
 
                                 let bt = if success {
                                     // process ran and exited with code 0

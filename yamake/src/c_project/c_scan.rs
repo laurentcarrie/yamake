@@ -33,6 +33,11 @@ pub(crate) fn c_file_scan(
                 if scanned.exists() {
                     log::info!("found ! : {:?}", scanned);
                     ret.push(relpath.into());
+
+                    // recursive scan
+                    let mut others = c_file_scan(srcdir.clone(), scanned, include_paths.clone())?;
+                    ret.extend(others);
+
                     break 'outer;
                 }
             }

@@ -16,12 +16,13 @@ pub(crate) struct H {
 
 pub(crate) fn get_hash_of_node(
     sandbox: PathBuf,
-    node: &Arc<dyn M::GNode>,
+    target: PathBuf,
+    preds: Vec<PathBuf>,
 ) -> Result<Option<String>, Box<dyn std::error::Error>> {
-    let mut target = sandbox.clone();
-    target.push(node.target());
-    let hash = if target.exists() {
-        let contents = std::fs::read(target)?;
+    let mut ftarget = sandbox.clone();
+    ftarget.push(target);
+    let hash = if ftarget.exists() {
+        let contents = std::fs::read(ftarget)?;
         let mut hasher = Sha256::new();
 
         hasher.update(contents);
@@ -34,20 +35,20 @@ pub(crate) fn get_hash_of_node(
     Ok(hash)
 }
 
-pub fn get_current_hash(
+pub(crate) fn get_current_hash(
     g: &M::G,
 ) -> Result<HashMap<String, Option<String>>, Box<dyn std::error::Error>> {
     let mut all: HashMap<String, Option<String>> = HashMap::new();
     for ni in g.g.node_indices() {
         let node = g.g.node_weight(ni).ok_or("what")?;
-        let hash = get_hash_of_node(g.sandbox.clone(), node)?;
+        let hash = get_hash_of_node(g.sandbox.clone(), node.target(), vec![])?;
         all.insert(node.id(), hash);
     }
 
     Ok(all)
 }
 
-pub fn write_current_hash(g: &M::G) -> Result<(), Box<dyn std::error::Error>> {
+pub(crate) fn write_current_hash(g: &M::G) -> Result<(), Box<dyn std::error::Error>> {
     let all = get_current_hash(&g)?;
     let data = serde_json::to_string(&all)?;
     let mut p = g.sandbox.clone();
@@ -56,33 +57,47 @@ pub fn write_current_hash(g: &M::G) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn get_stored_hash(g: &M::G) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
+pub(crate) fn get_stored_hash(
+    g: &M::G,
+) -> Result<HashMap<String, Option<String>>, Box<dyn std::error::Error>> {
+    log::info!("get stored hash");
     let mut p = g.sandbox.clone();
     p.push("hash.json");
     let data = if p.exists() {
+        log::info!("{}:{}", file!(), line!());
         let data = std::fs::read_to_string(p)?;
-        let json = serde_json::from_str::<HashMap<String, String>>(&data)?;
+        log::info!("{}:{} {}", file!(), line!(), data.len());
+
+        let json = serde_json::from_str::<HashMap<String, Option<String>>>(&data)?;
+        log::info!("{}:{}", file!(), line!());
+
         json
     } else {
-        HashMap::<String, String>::new()
+        HashMap::<String, Option<String>>::new()
     };
     Ok(data)
 }
 
-pub fn compute_needs_rebuild(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
+pub(crate) fn compute_needs_rebuild(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
+    log::info!("compute rebuild");
     let s = get_stored_hash(&g)?;
     let c = get_current_hash(&g)?;
     let mut r: HashMap<String, H> = HashMap::new();
     for (k, v) in c {
-        let stored = s.get(&k).clone();
-        let needs_rebuild = match (&v, stored) {
+        let stored = s.get(&k);
+        let stored = if let Some(x) = stored {
+            x.clone()
+        } else {
+            None
+        };
+        let needs_rebuild = match (&v, stored.clone()) {
             (None, _) => true,
             (_, None) => true,
-            (Some(a), Some(b)) => a != b,
+            (Some(a), Some(b)) => *a != b,
         };
         let x = H {
             on_disk: v.clone(),
-            stored: stored.clone().cloned(),
+            stored: stored.clone(),
             needs_rebuild,
         };
         r.insert(k, x);
