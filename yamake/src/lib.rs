@@ -1,6 +1,7 @@
 //! yamake
 //!
 //!
+//!
 #![doc = include_str!("doc.md")]
 
 use simple_mermaid::mermaid;

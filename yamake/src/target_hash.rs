@@ -5,7 +5,6 @@ use serde_json;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct H {
@@ -17,7 +16,6 @@ pub(crate) struct H {
 pub(crate) fn get_hash_of_node(
     sandbox: PathBuf,
     target: PathBuf,
-    preds: Vec<PathBuf>,
 ) -> Result<Option<String>, Box<dyn std::error::Error>> {
     let mut ftarget = sandbox.clone();
     ftarget.push(target);
@@ -41,7 +39,7 @@ pub(crate) fn get_current_hash(
     let mut all: HashMap<String, Option<String>> = HashMap::new();
     for ni in g.g.node_indices() {
         let node = g.g.node_weight(ni).ok_or("what")?;
-        let hash = get_hash_of_node(g.sandbox.clone(), node.target(), vec![])?;
+        let hash = get_hash_of_node(g.sandbox.clone(), node.target())?;
         all.insert(node.id(), hash);
     }
 

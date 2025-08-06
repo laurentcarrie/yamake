@@ -15,8 +15,6 @@ use yamake::c_project::h_file::Hfile;
 use yamake::c_project::o_file::Ofile;
 use yamake::c_project::x_file::Xfile;
 
-use petgraph::graph::NodeIndex;
-
 pub struct CSource;
 
 /// arguments for make
@@ -55,7 +53,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut g = M::G::new(srcdir.clone(), sandbox.clone())?;
 
-    let include_paths = vec![srcdir.clone()];
+    // don't use the srcdir ! we take the header files from the sandbox
+    // take everything from sandbox, there might be generated files
+    let include_paths = vec![sandbox.clone()];
     // let include_paths = vec![];
 
     // as in a Makefile, populate with the list of c file sources.
@@ -75,11 +75,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(s) = entry.path().extension() {
                 match s.to_str() {
                     Some("c") => {
-                        g.add_node(Cfile::new(p, include_paths.clone())?)?;
+                        g.add_node(Cfile::new(p)?)?;
                         ()
                     }
                     Some("h") => {
-                        g.add_node(Hfile::new(p, include_paths.clone())?)?;
+                        g.add_node(Hfile::new(p)?)?;
                         ()
                     }
                     s => log::info!("ignored entry : {:?}", s),
@@ -117,15 +117,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // get_hash(&g)?;
 
-    g.scan().await?;
+    // g.scan().await?;
 
-    {
-        let ni: NodeIndex = NodeIndex::new(0);
-        let n = g.g.node_weight(ni).unwrap();
-        let nn = n.clone();
+    // {
+    //     let ni: NodeIndex = NodeIndex::new(0);
+    //     let n = g.g.node_weight(ni).unwrap();
+    //     let nn = n.clone();
 
-        tokio::task::spawn(async move { log::info!("ZZZZ ; {:?}", nn.tag()) });
-    }
+    //     tokio::task::spawn(async move { log::info!("ZZZZ ; {:?}", nn.tag()) });
+    // }
 
     // tokio::task::spawn(async move { log::info!("ZZZZ ; {:?}", n.tag()) });
 

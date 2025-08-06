@@ -1,6 +1,5 @@
 use regex::Regex;
 use std::path::PathBuf;
-// use std::sync::Arc;
 
 pub(crate) fn c_file_scan(
     srcdir: PathBuf,
@@ -35,7 +34,7 @@ pub(crate) fn c_file_scan(
                     ret.push(relpath.into());
 
                     // recursive scan
-                    let mut others = c_file_scan(srcdir.clone(), scanned, include_paths.clone())?;
+                    let others = c_file_scan(srcdir.clone(), scanned, include_paths.clone())?;
                     ret.extend(others);
 
                     break 'outer;

@@ -9,6 +9,13 @@ use petgraph::graph::NodeIndex;
 
 /// the trait of a Node in the make graph
 ///
+///
+
+#[derive(Clone, Debug)]
+pub struct PathWithTag {
+    pub path: PathBuf,
+    pub tag: String,
+}
 
 pub trait GNode: Send + Sync {
     /// the function that builds the target file of a node, taking the predecessor nodes as inputs
@@ -20,8 +27,7 @@ pub trait GNode: Send + Sync {
     fn build(
         &self,
         _sandbox: PathBuf,
-        _sources: Vec<(PathBuf, String)>,
-        _deps: Vec<PathBuf>,
+        _sources: Vec<PathWithTag>,
         _stdout: PathBuf,
         _stderr: PathBuf,
     ) -> bool {
@@ -34,12 +40,13 @@ pub trait GNode: Send + Sync {
     fn scan(
         &self,
         _srcdir: PathBuf,
-        _source: PathBuf,
+        _sources: Vec<PathWithTag>,
     ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
-        panic!(
-            r###"scan function of node {:?} was called, but no implementation found "###,
-            self.target()
-        );
+        // panic!(
+        //     r###"scan function of node {:?} was called, but no implementation found "###,
+        //     self.target()
+        // );
+        Ok(vec![])
     }
 
     fn target(&self) -> PathBuf;
@@ -59,7 +66,7 @@ impl std::fmt::Debug for dyn GNode {
 }
 
 #[derive(Debug)]
-pub(crate) enum EKind {
+pub enum EKind {
     Scanned,
     Direct,
 }
@@ -185,8 +192,6 @@ impl G {
         Ok(())
     }
 }
-
-pub(crate) enum LogItem {}
 
 // #[derive(Serialize, Deserialize, PartialEq, Debug, Hash, Clone)]
 pub(crate) enum BuildType {

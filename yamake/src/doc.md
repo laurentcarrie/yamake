@@ -28,6 +28,18 @@ the provided scanner function will add edges to the graph.
 ---
 
 # the workflow :
+
+
+```mermaid
+
+flowchart TD
+
+    make_graph --> scan --> mount --> build 
+
+```
+
+
+
 - user creates the graph, and populates it with nodes and edges. The source nodes are the nodes without predecessors
 - the call `g.make`, this will
 - mount the files that have 0 predecessors ( copy them from `srcdir` to `sandbox` )
@@ -50,7 +62,8 @@ mounting is the action of copying the file the `srcdir` to the `sandbox`
 
 scanning a node is the action of reading a node file contents and detecting dependencies to other nodes. For instance, using the `#include` directory for C or C++ code.
 
-Only source nodes are scanned.
+Only source nodes are scanned. Note that scan does not add nodes, it only add edges. So for instance, for a C file, you will
+need to add the H files to the graph yourself. Just scan the source directory.
 
 
 

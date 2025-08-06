@@ -12,14 +12,17 @@ use std::collections::{HashMap, HashSet};
 use std::result::Result;
 // use std::time::Duration;
 
+use crate::model::PathWithTag;
 use crate::target_hash::{compute_needs_rebuild, write_current_hash};
 use crate::{model as M, target_hash};
 // use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 
-pub(crate) fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
+pub(crate) fn mount(g: &M::G) -> Result<u32, Box<dyn std::error::Error>> {
     log::info!("mount");
+
     std::fs::create_dir_all(&g.sandbox)?;
+    let mut count = 0;
 
     for id in g.g.node_indices() {
         let _n = g.g.node_weight(id).ok_or("huh ?")?;
@@ -54,10 +57,11 @@ pub(crate) fn mount(g: &M::G) -> Result<bool, Box<dyn std::error::Error>> {
                 target_in_srcdir.clone().as_os_str(),
                 target_in_sandbox.as_os_str(),
             )?;
+            count += 1;
         }
     }
 
-    Ok(true)
+    Ok(count)
 }
 
 pub(crate) async fn make(
@@ -70,7 +74,18 @@ pub(crate) async fn make(
     //     g.status.insert(n.id(),M::EStatus::Initial) ;
     // }
 
-    mount(g)?;
+    let pb = ProgressBar::new(g.g.node_indices().count().try_into().unwrap());
+    pb.set_style(
+        ProgressStyle::with_template(
+            ":-) make  [{elapsed_precise}] [{bar:40.cyan/blue}] ({pos}/{len}, ETA {eta})",
+        )
+        .unwrap(),
+    );
+
+    let count = mount(g)?;
+    println!("{count} nodes are mounted ; {} in total", g.g.node_count());
+
+    g.scan().await?;
     compute_needs_rebuild(g)?;
 
     let (tx, mut rx) = mpsc::channel::<(NodeIndex, M::BuildType)>(1000);
@@ -94,20 +109,12 @@ pub(crate) async fn make(
         .bold();
     // let ancestor_failed_text = "Ancestor Failed".hex("#FF8C00").on_hex("#000000").bold();
     let ancestor_failed_text = "Ancestor Failed".hex("#FF8C00").bold();
-    let id_text = |id: NodeIndex| -> String {
+    let _id_text = |id: NodeIndex| -> String {
         format!("{:3}", id.index())
             .hex("#8B008B")
             .on_hex("#7FFFFF")
             .bold()
     };
-
-    let pb = ProgressBar::new(g.g.node_indices().count().try_into().unwrap());
-    pb.set_style(
-        ProgressStyle::with_template(
-            ":-) make  [{elapsed_precise}] [{bar:40.cyan/blue}] ({pos}/{len}, ETA {eta})",
-        )
-        .unwrap(),
-    );
 
     let mut pending: HashSet<NodeIndex> = HashSet::new();
     for n in g.g.node_indices() {
@@ -240,7 +247,10 @@ pub(crate) async fn make(
                                 .map(|x| {
                                     let mut target = g.sandbox.clone();
                                     target.push(x.target().clone());
-                                    (target, x.tag().clone())
+                                    M::PathWithTag {
+                                        path: target,
+                                        tag: x.tag().clone(),
+                                    }
                                 })
                                 .collect::<Vec<_>>();
 
@@ -293,27 +303,16 @@ pub(crate) async fn make(
                                 logpath.push("log");
                                 std::fs::create_dir_all(&logpath).expect("create logs dir");
 
-                                let old_digest = target_hash::get_hash_of_node(
-                                    sandbox.clone(),
-                                    node.target(),
-                                    ancestor_targets.clone(),
-                                )
-                                .unwrap_or(None);
+                                let old_digest =
+                                    target_hash::get_hash_of_node(sandbox.clone(), node.target())
+                                        .unwrap_or(None);
 
-                                let success = node.build(
-                                    sandbox.clone(),
-                                    sources.clone(),
-                                    vec![],
-                                    stdout,
-                                    stderr.clone(),
-                                );
+                                let success =
+                                    node.build(sandbox.clone(), sources, stdout, stderr.clone());
 
-                                let new_digest = target_hash::get_hash_of_node(
-                                    sandbox.clone(),
-                                    node.target(),
-                                    ancestor_targets,
-                                )
-                                .unwrap_or(None);
+                                let new_digest =
+                                    target_hash::get_hash_of_node(sandbox.clone(), node.target())
+                                        .unwrap_or(None);
 
                                 let bt = if success {
                                     // process ran and exited with code 0
@@ -401,7 +400,7 @@ pub(crate) async fn make(
             pb.inc(1);
         }
     }
-    pb.println("writing hashes");
+    pb.println("writing new hashes");
     // compute_needs_rebuild(&g) ;
     write_current_hash(&g)?;
 
@@ -426,7 +425,7 @@ pub(crate) async fn make(
 }
 
 pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
-    let id_text = |id: NodeIndex| -> String {
+    let _id_text = |id: NodeIndex| -> String {
         format!("{:3}", id.index())
             .hex("#8B008B")
             .on_hex("#FFFF7F")
@@ -443,9 +442,10 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
     let mut logpath = g.sandbox.clone();
     logpath.push("log");
 
+    // we only scan nodes that are not sources
     let mut nodes_to_scan: Vec<(NodeIndex, &Arc<dyn M::GNode>)> = Vec::new();
     for ni in g.g.node_indices() {
-        if g.g.edges_directed(ni, Incoming).count() as u32 == 0 {
+        if g.g.edges_directed(ni, Incoming).count() as u32 > 0 {
             let node = &g.g.node_weight(ni).ok_or("huh ?")?;
 
             nodes_to_scan.push((ni, node));
@@ -454,7 +454,15 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
     let mut edges_to_add: Vec<(NodeIndex, NodeIndex)> = Vec::new();
 
     for (ni, n) in nodes_to_scan {
-        let scanned_deps = &n.scan(g.srcdir.clone(), n.target().clone())?;
+        let mut preds: Vec<PathWithTag> = vec![];
+        for ni2 in g.g.neighbors_directed(ni, Incoming) {
+            let n2 = g.g.node_weight(ni2).ok_or("hugh ?")?;
+            preds.push(M::PathWithTag {
+                path: n2.target(),
+                tag: n2.tag(),
+            })
+        }
+        let scanned_deps = &n.scan(g.sandbox.clone(), preds)?;
         log::info!(
             "found {} deps for node {:?}",
             scanned_deps.len(),
