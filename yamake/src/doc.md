@@ -1,15 +1,15 @@
- 
+
 # this is yet another Makefile tool
- 
+
  if you have a project, in C, LaTeX, Lilypond, whatever you can manually write a Makefile and run make to build a project.
  with generated code and the graph is dynamic, this can be difficult. Other features with regular Makefiles,
  such as scanning, sandbox, dynamic targets, timestamp, dependency cycles between directories
 
 ---
- 
+
 # this tool allows you to build the make graph, as a Rust project, with these features :
- 
-###  don't work in the sources directory, but in a sandbox. 
+
+###  don't work in the sources directory, but in a sandbox.
 
 Every command and output artefacts are generated in a sandbox. This way the source directory does not get polluted.
 
@@ -34,7 +34,7 @@ the provided scanner function will add edges to the graph.
 
 flowchart TD
 
-    make_graph --> scan --> mount --> build 
+    make_graph --> scan --> mount --> build
 
 ```
 
@@ -64,8 +64,3 @@ scanning a node is the action of reading a node file contents and detecting depe
 
 Only source nodes are scanned. Note that scan does not add nodes, it only add edges. So for instance, for a C file, you will
 need to add the H files to the graph yourself. Just scan the source directory.
-
-
-
-
-

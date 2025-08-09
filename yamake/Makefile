@@ -1,4 +1,4 @@
-.PHONY: run build doc png
+.PHONY: run build doc png test1 test2 tests
 
 run : build
 	clear
@@ -6,6 +6,21 @@ run : build
 	./target/debug/examples/c_program_example ../c_example sandbox
 	./sandbox/project_1/demo
 
+test1 : build
+	clear
+	./target/debug/examples/c_program_example ../c_example sandbox
+	rm sandbox/project_1/demo
+	./target/debug/examples/c_program_example ../c_example sandbox
+	ls sandbox/project_1/demo
+
+test2 : build
+	clear
+	./target/debug/examples/c_program_example ../c_example sandbox
+	rm sandbox/project_1/main.o
+	./target/debug/examples/c_program_example ../c_example sandbox
+	ls sandbox/project_1/demo
+
+tests: test1 test2
 
 png : out.png
 

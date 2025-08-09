@@ -1,3 +1,4 @@
+use crate::error as E;
 use colored_text::Colorize;
 use log;
 use petgraph::Direction::Incoming;
@@ -37,16 +38,16 @@ pub(crate) fn mount(g: &M::G) -> Result<u32, Box<dyn std::error::Error>> {
             let mut target_in_srcdir = g.srcdir.clone();
             target_in_srcdir.push(n.target());
             if !target_in_srcdir.exists() {
-                let msg = format!(
-                    r###"""
-                this target node has no predecessor : {}
-                either :
-                - it is a source file that does not exist, check typos or create it
-                - it is a built file, add a link between this node and its predecessors
-                """###,
-                    n.target().display().hex("#FF1493").on_hex("#F0FFFF").bold(),
-                );
-                return Err(msg.into());
+                // let msg = format!(
+                //     r###"""
+                // this target node has no predecessor : {}
+                // either :
+                // - it is a source file that does not exist, check typos or create it
+                // - it is a built file, add a link between this node and its predecessors
+                // """###,
+                //     n.target().display().hex("#FF1493").on_hex("#F0FFFF").bold(),
+                // );
+                return Err(E::CouldNotMountFileError::new(n.target()).into());
             }
             let mut target_in_sandbox = g.sandbox.clone();
             target_in_sandbox.push(n.target());
@@ -68,11 +69,13 @@ pub(crate) async fn make(
     g: &mut M::G,
     _force_rebuild: bool,
     nb_workers: u32,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<M::MakeReturn, Box<dyn std::error::Error>> {
     // for ni in g.g.node_indices() {
     //     let n = g.g.node_weight(ni).ok_or("get node")? ;
     //     g.status.insert(n.id(),M::EStatus::Initial) ;
     // }
+
+    let mut ret: HashMap<NodeIndex, M::BuildType> = HashMap::new();
 
     let pb = ProgressBar::new(g.g.node_indices().count().try_into().unwrap());
     pb.set_style(
@@ -100,6 +103,7 @@ pub(crate) async fn make(
     // let done_text = "DONE".hex("#8B008B").on_hex("#7FFF00").bold();
     let built_text = " BUILT ".hex("#00FFAA").bold();
     let built_but_not_changed_text = " BBNC ".hex("#FF00AA").bold();
+    let tag_text = |tag: String| tag.as_str().hex("#000033").on_hex("#eeeeee").bold();
 
     let _not_touched_text = "Skip".hex("#8B008B").on_hex("#7FFFFF").bold();
     let failed_text = "FAILED"
@@ -166,19 +170,18 @@ pub(crate) async fn make(
                 == total_nodes
         );
         if total_nodes == rebuilt.len() + failed.len() + ancestor_failed.len() + skipped.len() {
+            log::info!(
+                "{total_nodes} == {} + {} + {} + {}",
+                rebuilt.len(),
+                failed.len(),
+                ancestor_failed.len(),
+                skipped.len()
+            );
+            log::info!("condition met to break out of outer loop");
             break 'outermost;
         }
         // 'outer: loop {
         {
-            // log::info!("running: {:?}", running.len());
-            // if running.len() == nb_workers as usize {
-            //     log::info!("break 'outer");
-            //     break 'outer;
-            // }
-            if pending.is_empty() {
-                break;
-            }
-
             {
                 for ni in g.g.node_indices() {
                     if running.len() == nb_workers as usize {
@@ -219,16 +222,18 @@ pub(crate) async fn make(
                                 // log::info!("ok, sent");
                                 ()
                             }
-                            Err(e) => log::error!("failed to send node index: {ni:?} {e}"),
+                            Err(e) => {
+                                log::error!("failed to send node index: {ni:?} {e}");
+                                return Err("failed to send node index: {ni:?} {e}".into());
+                            }
                         };
                     } else if ok_to_start && !an_ancestor_changed && !needs_rebuild {
                         log::info!("SKIP === > {:?}", node);
                         pending.remove(&ni);
                         skipped.insert(ni);
-                        match tx
-                            .send((ni, M::BuildType::NotTouched(PathBuf::from(""))))
-                            .await
-                        {
+                        // hum... why this ?
+                        ret.insert(ni, M::BuildType::NotTouched(ni));
+                        match tx.send((ni, M::BuildType::NotTouched(ni))).await {
                             Ok(()) => {
                                 // log::info!("ok, sent");
                                 ()
@@ -266,12 +271,13 @@ pub(crate) async fn make(
                             let bt = if *needs_rebuild {
                                 M::BuildType::Rebuilt(node.target().clone())
                             } else {
-                                M::BuildType::NotTouched(node.target().clone())
+                                M::BuildType::NotTouched(ni)
                             };
                             match tx.send((ni, bt)).await {
                                 Ok(()) => (),
                                 Err(e) => {
-                                    log::error!("failed to send node index: {ni:?} {e}")
+                                    log::error!("failed to send node index: {ni:?} {e}");
+                                    return Err("failed to send node index: {ni:?} {e}".into());
                                 }
                             }
                         } else {
@@ -332,7 +338,13 @@ pub(crate) async fn make(
                                 match tx.send((ni, bt)).await {
                                     Ok(()) => (),
                                     Err(e) => {
-                                        log::error!("failed to send node index: {ni:?} {e}")
+                                        log::error!(
+                                            "{}:{} failed to send node index: {ni:?} {e}",
+                                            file!(),
+                                            line!()
+                                        );
+                                        // return Err("failed to send node index: {ni:?} {e}".into());
+                                        ()
                                     }
                                 }
                             });
@@ -357,15 +369,19 @@ pub(crate) async fn make(
         if let Some(li) = rx.recv().await {
             running.remove(&li.0);
             let node = g.g.node_weight(li.0).ok_or("huh, no node?")?;
-            match li.1 {
+            let bt = li.1;
+            ret.insert(li.0, bt.clone());
+            log::info!("ret is now {:?}", ret);
+            match bt {
                 M::BuildType::Rebuilt(target) => {
                     rebuilt.insert(li.0);
                     built_targets.insert(li.0, target);
                     pb.println(format!(
-                        "{} {:?} ",
+                        "{} {:?} [{}]",
                         // id_text(li.0),
                         built_text,
-                        node.target()
+                        node.target().clone(),
+                        tag_text(node.tag()),
                     ));
                 }
                 M::BuildType::RebuiltButUnchanged(target) => {
@@ -375,22 +391,24 @@ pub(crate) async fn make(
                         "{} {:?} ",
                         // id_text(li.0),
                         built_but_not_changed_text,
-                        node.target()
+                        node.target().clone()
                     ));
                 }
 
-                M::BuildType::NotTouched(target) => {
+                M::BuildType::NotTouched(ni) => {
                     skipped.insert(li.0);
-                    built_targets.insert(li.0, target);
+                    let node = g.g.node_weight(ni).ok_or("huh?")?;
+                    built_targets.insert(li.0, node.target());
                     // pb.println(format!("{} node {:?} ", not_touched_text, node));
                 }
                 M::BuildType::Failed => {
                     failed.insert(li.0);
                     pb.println(format!(
-                        "{} node {:?} ",
+                        "{} node {:?} [{}]",
                         // id_text(li.0),
                         failed_text,
-                        node.target()
+                        node.target(),
+                        tag_text(node.tag())
                     ));
                 }
                 M::BuildType::AncestorFailed => {
@@ -400,6 +418,17 @@ pub(crate) async fn make(
             pb.inc(1);
         }
     }
+    if pending.len()
+        + running.len()
+        + rebuilt.len()
+        + failed.len()
+        + ancestor_failed.len()
+        + skipped.len()
+        != total_nodes
+    {
+        return Err("counts don't match".into());
+    }
+    log::info!("got out of outer loop");
     pb.println("writing new hashes");
     // compute_needs_rebuild(&g) ;
     write_current_hash(&g)?;
@@ -421,7 +450,29 @@ pub(crate) async fn make(
     }
     pb.finish_with_message("done");
 
-    Ok(())
+    let mut success = true;
+    for (_k, v) in ret.iter() {
+        match v {
+            M::BuildType::Failed => success = false,
+            M::BuildType::Rebuilt(_)
+            | M::BuildType::NotTouched(_)
+            | M::BuildType::RebuiltButUnchanged(_)
+            | M::BuildType::AncestorFailed => {}
+        }
+    }
+
+    if ret.len() != g.g.node_count() {
+        let msg = format!(
+            "internal logic error, the map <node,build result> has len {}, but the graph has {} nodes",
+            ret.len(),
+            g.g.node_count()
+        );
+        log::error!("{}", msg);
+
+        return Err(msg.into());
+    }
+
+    Ok(M::MakeReturn { success, nt: ret })
 }
 
 pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
@@ -483,10 +534,13 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
         }
 
         let scan_text = "SCANNED".hex("#7FFF00").bold();
+        let tag_text = |tag: String| tag.hex("#000033").on_hex("#eeeeee").bold();
+
         pb.println(format!(
-            "{scan_text} {:?} -> {} new edge(s)",
+            "{scan_text} {:?} [{}] : added  {} edge(s)",
             // id_text(ni),
             &n.target(),
+            tag_text(n.tag()),
             scanned_deps.len()
         ));
         pb.inc(1);

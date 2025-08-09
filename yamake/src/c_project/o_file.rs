@@ -61,15 +61,24 @@ impl M::GNode for Ofile {
         sources: Vec<M::PathWithTag>,
     ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         // sanity check, the rule is .o : .c
-        if sources.len() != 1 {
-            return Err("o_node should only have one source".into());
-        }
-        let pt = sources.get(0).ok_or("o_node should have only one source")?;
-        if pt.tag != "c file" {
-            return Err(format!("bad tag : {}, expected 'c file'", pt.tag).into());
-        }
+        // if sources.len() != 1 {
+        //     for s in sources {
+        //         log::info!("source : {:?}", s);
+        //     }
+        //     log::error!("o_node should only have one source");
 
-        let deps = c_file_scan(srcdir, pt.path.clone(), self.include_paths.clone())?;
+        //     return Err("o_node should only have one source".into());
+        // }
+        let sources = sources
+            .iter()
+            .filter(|x| x.tag == "c file")
+            .collect::<Vec<_>>();
+        if sources.len() != 1 {
+            log::error!("bad graph construct for node {:?}", self);
+            return Err(format!("bad graph construct for node {:?}", self).into());
+        }
+        let source = sources.get(0).expect("one node").path.clone();
+        let deps = c_file_scan(srcdir, source.clone(), self.include_paths.clone())?;
         Ok(deps)
     }
 

@@ -7,9 +7,4 @@ int main() {
     int x = add(45,32) ;
     printf("x is %d\n",x) ;
 
-
-
-
-
-
 }

@@ -21,6 +21,7 @@ sha2 = "0.10.9"
 simple-logging = "2.0.2"
 simple-mermaid = "0.2.0"
 simple_logger = "5.0.0"
+tempdir = "0.3.7"
 tokio = { version = "1.46.1", features = ["full"] }
 walkdir = "2.5.0"
 

@@ -79,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         ()
                     }
                     Some("h") => {
-                        g.add_node(Hfile::new(p)?)?;
+                        // g.add_node(Hfile::new(p)?)?;
                         ()
                     }
                     s => log::info!("ignored entry : {:?}", s),
@@ -138,7 +138,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     log::info!("main foo");
     match g.make(cli.force, cli.nb_workers).await {
-        Ok(()) => (),
+        Ok(_) => (),
         Err(e) => println!("{}", e.to_string()),
     };
 

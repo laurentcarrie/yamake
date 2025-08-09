@@ -19,6 +19,10 @@ pub(crate) mod run;
 
 pub(crate) mod target_hash;
 
+pub(crate) mod test_c;
+
+pub mod error;
+
 // pub fn add(left: u64, right: u64) -> u64 {
 //     left + right
 // }

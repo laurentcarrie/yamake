@@ -31,10 +31,8 @@ pub trait GNode: Send + Sync {
         _stdout: PathBuf,
         _stderr: PathBuf,
     ) -> bool {
-        panic!(
-            r###"build function of node {:?} was called, but no implementation found "###,
-            self.target()
-        );
+        log::error!("cannot build node {:?}", self.target());
+        false
     }
 
     fn scan(
@@ -142,7 +140,8 @@ impl G {
                 return Ok(ni);
             }
         }
-        Err("path not found {p:?}".into())
+        // log::error!("{}:{}, path not found : {p:?}", file!(), line!());
+        Err(format!("cannot find node index for path {p:?}").into())
     }
 
     pub fn add_edge(
@@ -181,9 +180,9 @@ impl G {
         &mut self,
         force_rebuild: bool,
         nb_workers: u32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        crate::run::make(self, force_rebuild, nb_workers).await?;
-        Ok(())
+    ) -> Result<MakeReturn, Box<dyn std::error::Error>> {
+        let ret = crate::run::make(self, force_rebuild, nb_workers).await?;
+        Ok(ret)
     }
 
     pub async fn scan(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -193,11 +192,17 @@ impl G {
     }
 }
 
-// #[derive(Serialize, Deserialize, PartialEq, Debug, Hash, Clone)]
-pub(crate) enum BuildType {
+#[derive(PartialEq, Debug, Hash, Clone)]
+pub enum BuildType {
     Rebuilt(PathBuf),
     RebuiltButUnchanged(PathBuf),
-    NotTouched(PathBuf),
+    NotTouched(NodeIndex),
     AncestorFailed,
     Failed,
+}
+
+#[derive(Debug)]
+pub struct MakeReturn {
+    pub success: bool,
+    pub nt: HashMap<NodeIndex, BuildType>,
 }
