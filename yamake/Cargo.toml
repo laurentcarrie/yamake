@@ -1,7 +1,13 @@
 [package]
 name = "yamake"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
+description="yet another make tool."
+license = "MIT OR Apache-2.0"
+repository="https://github.com/laurentcarrie/yamake"
+readme="../README.md"
+
+
 
 [dependencies]
 argh = "0.1.13"
@@ -12,7 +18,9 @@ hex = "0.4.3"
 indicatif = "0.18.0"
 log = "0.4.27"
 markdown-heading-id = "0.1.0"
-petgraph = "0.8.2"
+mdbook = "0.4.52"
+mdbook-mermaid = "0.15.0"
+petgraph = { version = "0.8.2", features = ["serde_derive", "serde","all"] }
 pulldown-cmark = "0.13.0"
 regex = "1.11.1"
 serde = {version="1.0.219",features=["serde_derive"]}

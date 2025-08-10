@@ -10,7 +10,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use petgraph::graph::NodeIndex;
 use std::collections::{HashMap, HashSet};
-use std::result::Result;
+use std::result::{self, Result};
 // use std::time::Duration;
 
 use crate::model::PathWithTag;
@@ -217,6 +217,7 @@ pub(crate) async fn make(
                         log::info!("ANCESTOR FAILED === > {:?} ; {:?}", node.target(), ni);
                         pending.remove(&ni);
                         ancestor_failed.insert(ni);
+                        ret.insert(ni, M::BuildType::AncestorFailed.clone());
                         match tx.send((ni, M::BuildType::AncestorFailed)).await {
                             Ok(()) => {
                                 // log::info!("ok, sent");
@@ -232,8 +233,11 @@ pub(crate) async fn make(
                         pending.remove(&ni);
                         skipped.insert(ni);
                         // hum... why this ?
-                        ret.insert(ni, M::BuildType::NotTouched(ni));
-                        match tx.send((ni, M::BuildType::NotTouched(ni))).await {
+                        ret.insert(ni, M::BuildType::NotTouched(node.target().clone()));
+                        match tx
+                            .send((ni, M::BuildType::NotTouched(node.target().clone())))
+                            .await
+                        {
                             Ok(()) => {
                                 // log::info!("ok, sent");
                                 ()
@@ -271,7 +275,7 @@ pub(crate) async fn make(
                             let bt = if *needs_rebuild {
                                 M::BuildType::Rebuilt(node.target().clone())
                             } else {
-                                M::BuildType::NotTouched(ni)
+                                M::BuildType::NotTouched(node.target().clone())
                             };
                             match tx.send((ni, bt)).await {
                                 Ok(()) => (),
@@ -312,9 +316,9 @@ pub(crate) async fn make(
                                 let old_digest =
                                     target_hash::get_hash_of_node(sandbox.clone(), node.target())
                                         .unwrap_or(None);
-
-                                let success =
-                                    node.build(sandbox.clone(), sources, stdout, stderr.clone());
+                                let stdout = std::fs::File::create(stdout).expect("create stdout");
+                                let stderr = std::fs::File::create(stderr).expect("create stderr");
+                                let success = node.build(sandbox.clone(), sources, stdout, stderr);
 
                                 let new_digest =
                                     target_hash::get_hash_of_node(sandbox.clone(), node.target())
@@ -395,10 +399,10 @@ pub(crate) async fn make(
                     ));
                 }
 
-                M::BuildType::NotTouched(ni) => {
+                M::BuildType::NotTouched(target) => {
                     skipped.insert(li.0);
-                    let node = g.g.node_weight(ni).ok_or("huh?")?;
-                    built_targets.insert(li.0, node.target());
+                    // let node = g.g.node_weight(ni).ok_or("huh?")?;
+                    built_targets.insert(li.0, target);
                     // pb.println(format!("{} node {:?} ", not_touched_text, node));
                 }
                 M::BuildType::Failed => {
@@ -450,6 +454,19 @@ pub(crate) async fn make(
     }
     pb.finish_with_message("done");
 
+    {
+        // write the results to a file
+        let mut resultpath = g.sandbox.clone();
+        resultpath.push("make_result.json");
+        let mut x: Vec<(PathBuf, M::BuildType, usize)> = vec![];
+        for (ni, bt) in ret.iter() {
+            let node = g.g.node_weight(*ni).ok_or("huh ?")?;
+            log::info!("{} : {:?} => {:?}", node.id(), node.target(), bt);
+            x.push((node.target().clone(), bt.clone(), ni.index()));
+        }
+        std::fs::write(resultpath, serde_json::to_string_pretty(&x)?)?;
+    }
+
     let mut success = true;
     for (_k, v) in ret.iter() {
         match v {
@@ -468,6 +485,12 @@ pub(crate) async fn make(
             g.g.node_count()
         );
         log::error!("{}", msg);
+        for ni in g.g.node_indices() {
+            if !ret.contains_key(&ni) {
+                let node = g.g.node_weight(ni).ok_or("huh ?")?;
+                log::error!("missing node {:?} in ret", node.target());
+            }
+        }
 
         return Err(msg.into());
     }
@@ -476,6 +499,7 @@ pub(crate) async fn make(
 }
 
 pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
+    mount(g)?;
     let _id_text = |id: NodeIndex| -> String {
         format!("{:3}", id.index())
             .hex("#8B008B")

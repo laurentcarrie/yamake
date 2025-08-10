@@ -1,0 +1,15 @@
+# Summary
+
+- [what is it](./chapter_1.md)
+- [how to use it](./workflow.md)
+    - [instanciate](./instanciate_graph.md)
+    - [add nodes](./add_nodes.md)
+    - [add edges](./add_edges.md)
+    - [plot graph](./plot_graph.md)
+    - [scan](./scan.md)
+    - [make](./make.md)
+- [How to add rules](./addrules.md)
+    - [target](./addrule-target.md)
+    - [id](./addrule-id.md)
+    - [tag](./addrule-tag.md)
+    - [scan](./addrule-scan.md)

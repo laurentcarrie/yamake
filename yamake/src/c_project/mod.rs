@@ -16,6 +16,3 @@ pub mod x_file;
 
 /// scan a C or H file
 pub mod c_scan;
-
-/// call the gcc compiler
-pub(crate) mod c_compile;

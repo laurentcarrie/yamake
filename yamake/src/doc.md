@@ -30,15 +30,6 @@ the provided scanner function will add edges to the graph.
 # the workflow :
 
 
-```mermaid
-
-flowchart TD
-
-    make_graph --> scan --> mount --> build
-
-```
-
-
 
 - user creates the graph, and populates it with nodes and edges. The source nodes are the nodes without predecessors
 - the call `g.make`, this will
@@ -64,3 +55,20 @@ scanning a node is the action of reading a node file contents and detecting depe
 
 Only source nodes are scanned. Note that scan does not add nodes, it only add edges. So for instance, for a C file, you will
 need to add the H files to the graph yourself. Just scan the source directory.
+
+
+```mermaid
+
+---
+config:
+  flowchart:
+    htmlLabels: false
+---
+flowchart LR
+    markdown["`This **is** _Markdown_`"]
+    newLines["`Line1
+    Line 2
+    Line 3`"]
+    markdown --> newLines
+
+```

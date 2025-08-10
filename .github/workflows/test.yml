@@ -1,0 +1,27 @@
+name: rust
+on:
+  push:
+    branches:
+      - work
+      - main
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run cargo fmt
+        run: ( cd yamake && cargo fmt --all -- --check )
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        BUILD_TARGET: [release] # refers to a cargo profile
+    outputs:
+      release_built: ${{ steps.set-output.outputs.release_built }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build binaries in "${{ matrix.BUILD_TARGET }}" mode
+        run: ( cd yamake && cargo build --profile ${{ matrix.BUILD_TARGET }} )
+      - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
+        run: ( cd yamake && cargo test --profile ${{ matrix.BUILD_TARGET }} )

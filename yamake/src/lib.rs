@@ -6,7 +6,7 @@
 
 use simple_mermaid::mermaid;
 
-#[doc = mermaid!("pets.md")]
+#[doc = mermaid!("graph1.md")]
 
 /// the model providing traits for users to implement
 pub mod model;
