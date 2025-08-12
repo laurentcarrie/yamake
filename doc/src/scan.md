@@ -28,8 +28,3 @@ But if add.h was forgotten in the graph, this dependency will be ignored.
 
 the scan is used to determine, using files digest, if a successor node needs to be rebuilt. So if the scanner is not correct, the build will be fine,
 but the feature *rebuild only what is necessary* will not work correctly.
-
-
----
-
-scan is also very important in case of generated dependencies. consider this example
