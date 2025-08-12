@@ -1,11 +1,10 @@
 use argh::FromArgs;
 use log;
-use petgraph::Direction::Incoming;
+// use petgraph::Direction::Incoming;
 use simple_logging;
 // use tokio::process::Child;
 use std::path::PathBuf;
 // use tokio::process::Command;
-use walkdir::WalkDir;
 
 use petgraph::dot::Dot;
 use yamake::model as M;
@@ -42,6 +41,8 @@ struct Cli {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     simple_logging::log_to_file("make.log", log::LevelFilter::Info)?;
 
+    // ANCHOR: instanciate
+
     let cli: Cli = argh::from_env();
 
     let srcdir = PathBuf::from(cli.srcdir)
@@ -53,94 +54,69 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut g = M::G::new(srcdir.clone(), sandbox.clone())?;
 
+    // ANCHOR_END: instanciate
+
     // don't use the srcdir ! we take the header files from the sandbox
     // take everything from sandbox, there might be generated files
+
+    // ANCHOR: add_nodes
+    for f in vec!["project_1/main.c", "project_1/add.c"] {
+        g.add_node(Cfile::new(f.into())?)?;
+    }
+    for f in vec!["project_1/add.h", "project_1/wrapper.h"] {
+        g.add_node(Hfile::new(f.into())?)?;
+    }
+
     let include_paths = vec![sandbox.clone()];
-    // let include_paths = vec![];
-
-    // as in a Makefile, populate with the list of c file sources.
-    // we also add the .h
-    // populate the graph with source code.
-    // in this demo, we walk in the srcdir and add all the .c and .h files
-    for entry in WalkDir::new(&srcdir).into_iter() {
-        if let Ok(entry) = entry
-            && entry.path().is_file()
-        {
-            let p = entry.path().to_path_buf().canonicalize()?;
-            let p = p
-                .strip_prefix(&srcdir)
-                .expect(format!("strip {:?}", p).as_str())
-                .to_path_buf();
-
-            if let Some(s) = entry.path().extension() {
-                match s.to_str() {
-                    Some("c") => {
-                        g.add_node(Cfile::new(p)?)?;
-                        ()
-                    }
-                    Some("h") => {
-                        // g.add_node(Hfile::new(p)?)?;
-                        ()
-                    }
-                    s => log::info!("ignored entry : {:?}", s),
-                }
-            }
-        }
+    let compile_options = vec!["-Wall".into(), "-O2".into()];
+    for f in vec!["project_1/main.o", "project_1/add.o"] {
+        g.add_node(Ofile::new(
+            f.into(),
+            include_paths.clone(),
+            compile_options.clone(),
+        )?)?;
     }
 
-    {
-        // as in Makefile where .c.o is an implicit rule,
+    let link_flags = vec![];
+    g.add_node(Xfile::new("project_1/demo".into(), link_flags)?)?;
 
-        // for each .c file we add a .o file the explicit dependecy and the build function
-        // unimplemented!();
+    // ANCHOR_END: add_nodes
 
-        let mut oc_files: Vec<(PathBuf, PathBuf)> = Vec::new();
-        for ni in g.g.node_indices() {
-            if g.g.edges_directed(ni, Incoming).count() == 0 {
-                let n = g.g.node_weight(ni).ok_or("huh")?;
-                if n.tag() == "c file" {
-                    oc_files.push((n.target(), n.target().with_extension("o")));
-                }
-            }
-        }
-        for (c, o) in oc_files {
-            g.add_node(Ofile::new(o.clone(), include_paths.clone())?)?;
-            g.add_edge(o, c)?;
-        }
-    }
+    // ANCHOR: add_edges
+    g.add_edge("project_1/main.o".into(), "project_1/main.c".into())?;
+    g.add_edge("project_1/add.o".into(), "project_1/add.c".into())?;
+    g.add_edge("project_1/demo".into(), "project_1/main.o".into())?;
+    g.add_edge("project_1/demo".into(), "project_1/add.o".into())?;
 
-    // as in a Makefile, explicit how your executable depends on sources
-    let exe = PathBuf::from("project_1/demo");
-    g.add_node(Xfile::new(exe.clone())?)?;
-    g.add_edge(exe.clone(), PathBuf::from("project_1/main.o"))?;
-    g.add_edge(exe.clone(), PathBuf::from("project_1/add.o"))?;
+    // ANCHOR_END: add_edges
 
-    // get_hash(&g)?;
-
-    // g.scan().await?;
-
-    // {
-    //     let ni: NodeIndex = NodeIndex::new(0);
-    //     let n = g.g.node_weight(ni).unwrap();
-    //     let nn = n.clone();
-
-    //     tokio::task::spawn(async move { log::info!("ZZZZ ; {:?}", nn.tag()) });
-    // }
-
-    // tokio::task::spawn(async move { log::info!("ZZZZ ; {:?}", n.tag()) });
-
-    // for demo or debug, output the tree
+    // ANCHOR: dot
     let basic_dot = Dot::new(&g.g);
-    let pdot = PathBuf::from("out.dot");
+    let pdot = PathBuf::from("before-scan.dot");
+    std::fs::write(pdot, format!("{:?}", basic_dot))?;
+    // ANCHOR_END: dot
+
+    // ANCHOR: scan
+    g.scan().await?;
+
+    let basic_dot = Dot::new(&g.g);
+    let pdot = PathBuf::from("after-scan.dot");
     std::fs::write(pdot, format!("{:?}", basic_dot))?;
 
-    log::info!("dot file written");
+    // ANCHOR_END: scan
 
-    log::info!("main foo");
+    // ANCHOR: make
     match g.make(cli.force, cli.nb_workers).await {
-        Ok(_) => (),
+        Ok(ret) => {
+            println!("success : {}", ret.success);
+            for (k, v) in ret.nt {
+                println!("node {:?} : {:?}", k, v);
+            }
+        }
+
         Err(e) => println!("{}", e.to_string()),
     };
+    // ANCHOR_END: make
 
     // write_current_hash(&g)?;
     Ok(())

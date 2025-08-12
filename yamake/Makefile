@@ -20,13 +20,18 @@ test2 : build
 	./target/debug/examples/c_program_example ../c_example sandbox
 	ls sandbox/project_1/demo
 
-tests: test1 test2
+test: build
+	cargo test
 
 png : out.png
 
 
-out.png : run
-	dot -Tpng -o out.png out.dot
+before-scan.png after-scan.png : run
+	dot -Tpng -obefore-scan.png before-scan.dot
+	dot -Tpng -o after-scan.png  after-scan.dot
+	cp *scan.png ../doc/src/.
+
+png : before-scan.png after-scan.png
 
 
 build:

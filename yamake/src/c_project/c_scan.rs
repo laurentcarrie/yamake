@@ -1,6 +1,7 @@
 use regex::Regex;
 use std::path::PathBuf;
 
+// ANCHOR: c_file_scan
 pub(crate) fn c_file_scan(
     srcdir: PathBuf,
     target: PathBuf,
@@ -51,3 +52,4 @@ pub(crate) fn c_file_scan(
 
     Ok(ret)
 }
+// ANCHOR_END: c_file_scan

@@ -1,5 +1,6 @@
 use colored_text::Colorize;
 use petgraph::Graph;
+use serde::{Deserialize, Serialize};
 use simple_mermaid::mermaid;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -24,34 +25,45 @@ pub trait GNode: Send + Sync {
     /// sources: the sources for the build ( the predecessor nodes in the graph )
     /// stdout: where to write stdout. Pass it to std::process::Command if you call a command
     /// stderr: where to write stderr
+    ///
+    // ANCHOR: build
     fn build(
         &self,
         _sandbox: PathBuf,
         _sources: Vec<PathWithTag>,
-        _stdout: PathBuf,
-        _stderr: PathBuf,
+        _stdout: std::fs::File,
+        _stderr: std::fs::File,
     ) -> bool {
         log::error!("cannot build node {:?}", self.target());
         false
     }
+    // ANCHOR_END: build
 
+    // ANCHOR: scan
     fn scan(
         &self,
         _srcdir: PathBuf,
         _sources: Vec<PathWithTag>,
     ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
-        // panic!(
-        //     r###"scan function of node {:?} was called, but no implementation found "###,
-        //     self.target()
-        // );
         Ok(vec![])
     }
+    // ANCHOR_END:scan
 
+    // ANCHOR: target
+    // the target path of a node, relative to the sandbox path
     fn target(&self) -> PathBuf;
+    // ANCHOR_END: target
+
+    // ANCHOR: tag
     fn tag(&self) -> String;
+    // ANCHOR_END: tag
 
     // unique id in the graph
-    fn id(&self) -> String;
+    // ANCHOR: id
+    fn id(&self) -> String {
+        self.target().to_str().expect("target to str").to_string()
+    }
+    // ANCHOR_END: id
 }
 
 impl std::fmt::Debug for dyn GNode {
@@ -175,7 +187,16 @@ impl G {
         }
         true
     }
-
+    // pub fn mount(&mut self) -> Result<u32, Box<dyn std::error::Error>> {
+    //     // crate::run::make(self, true, 4, ETraverse::Scan).await?;
+    //     let n = crate::run::mount(self)?;
+    //     Ok(n)
+    // }
+    pub async fn scan(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        // crate::run::make(self, true, 4, ETraverse::Scan).await?;
+        crate::run::scan(self).await?;
+        Ok(())
+    }
     pub async fn make(
         &mut self,
         force_rebuild: bool,
@@ -184,19 +205,13 @@ impl G {
         let ret = crate::run::make(self, force_rebuild, nb_workers).await?;
         Ok(ret)
     }
-
-    pub async fn scan(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        // crate::run::make(self, true, 4, ETraverse::Scan).await?;
-        crate::run::scan(self).await?;
-        Ok(())
-    }
 }
 
-#[derive(PartialEq, Debug, Hash, Clone)]
+#[derive(PartialEq, Debug, Hash, Clone, Serialize, Deserialize)]
 pub enum BuildType {
     Rebuilt(PathBuf),
     RebuiltButUnchanged(PathBuf),
-    NotTouched(NodeIndex),
+    NotTouched(PathBuf),
     AncestorFailed,
     Failed,
 }

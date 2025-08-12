@@ -1,4 +1,5 @@
 use crate::model as M;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -8,12 +9,13 @@ use std::process::Command;
 #[derive(Debug, Clone)]
 pub struct Xfile {
     target: PathBuf,
+    flags: Vec<String>,
 }
 
 impl Xfile {
-    pub fn new(target: PathBuf) -> Result<Xfile, Box<dyn std::error::Error>> {
+    pub fn new(target: PathBuf, flags: Vec<String>) -> Result<Xfile, Box<dyn std::error::Error>> {
         // let target = target.as_os_str().to_str().ok_or("bad string")?.to_string();
-        Ok(Xfile { target })
+        Ok(Xfile { target, flags })
     }
 }
 
@@ -22,13 +24,13 @@ impl M::GNode for Xfile {
         &self,
         sandbox: PathBuf,
         sources: Vec<M::PathWithTag>,
-        stdout: PathBuf,
-        stderr: PathBuf,
+        mut stdout: std::fs::File,
+        mut stderr: std::fs::File,
     ) -> bool {
         let mut filtered_sources: Vec<PathBuf> = vec![];
         for x in sources {
             if x.tag != "o file" {
-                std::fs::write(stderr, format!("found bad source : {:?}", x)).expect("write error");
+                writeln!(stderr, "found bad source : {:?}", x).expect("write error");
                 return false;
             } else {
                 filtered_sources.push(x.path);
@@ -40,9 +42,10 @@ impl M::GNode for Xfile {
             .args(filtered_sources)
             .arg("-o")
             .arg(self.target())
+            .args(self.flags.clone())
             .current_dir(&sandbox)
-            .stdout(std::fs::File::create(stdout).expect("stdout"))
-            .stderr(std::fs::File::create(&stderr).expect("stderr"));
+            .stdout(stdout)
+            .stdout(stderr);
         let child = binding;
         log::info!("child is : {:?}", &child);
         log::info!("exit : {:?}", child.status());
@@ -50,7 +53,7 @@ impl M::GNode for Xfile {
         match child.status() {
             Ok(e) => e.success(),
             Err(e) => {
-                std::fs::write(stderr, format!("{:?}", e)).expect("write error");
+                // writeln!(stderr, "{:?}", e).expect("write error");
                 false
             }
         }
