@@ -8,4 +8,4 @@ but very different, some features :
 - one log file per action, not one stdout for the whole build process
 - etc
 
-see the doc 
+see the doc
