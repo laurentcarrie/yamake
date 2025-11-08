@@ -4,7 +4,7 @@
 //!
 #![doc = include_str!("doc.md")]
 
-use simple_mermaid::mermaid;
+// use simple_mermaid::mermaid;
 
 #[doc = mermaid!("graph1.md")]
 

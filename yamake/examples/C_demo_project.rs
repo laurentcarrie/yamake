@@ -7,12 +7,23 @@ use std::path::PathBuf;
 // use tokio::process::Command;
 
 use petgraph::dot::Dot;
-use yamake::model as M;
 
+// ANCHOR: use
+use yamake::model as M;
+// ANCHOR_END: use
+
+// ANCHOR: use_existing_rules
+// .c source file
 use yamake::c_project::c_file::Cfile;
+// .h source file
 use yamake::c_project::h_file::Hfile;
+// .o built object file
 use yamake::c_project::o_file::Ofile;
+// executeble built file
 use yamake::c_project::x_file::Xfile;
+
+// granted, we should add .a libraries and .so dynamic link libraries
+// ANCHOR_END: use_existing_rules
 
 pub struct CSource;
 
@@ -92,7 +103,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ANCHOR: dot
     let basic_dot = Dot::new(&g.g);
-    let pdot = PathBuf::from("before-scan.dot");
+    let mut pdot = sandbox.clone();
+    pdot.push("before-scan.dot");
     std::fs::write(pdot, format!("{:?}", basic_dot))?;
     // ANCHOR_END: dot
 
@@ -100,7 +112,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     g.scan().await?;
 
     let basic_dot = Dot::new(&g.g);
-    let pdot = PathBuf::from("after-scan.dot");
+    let mut pdot = sandbox.clone();
+    pdot.push("after-scan.dot");
     std::fs::write(pdot, format!("{:?}", basic_dot))?;
 
     // ANCHOR_END: scan
@@ -109,9 +122,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match g.make(cli.force, cli.nb_workers).await {
         Ok(ret) => {
             println!("success : {}", ret.success);
-            for (k, v) in ret.nt {
-                println!("node {:?} : {:?}", k, v);
-            }
+            // you can walk the graph and print status of each node
+            // for (k, v) in ret.nt {
+            //     println!("node {:?} : {:?}", k, v);
+            // }
         }
 
         Err(e) => println!("{}", e.to_string()),

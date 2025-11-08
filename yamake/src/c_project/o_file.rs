@@ -50,6 +50,7 @@ impl M::GNode for Ofile {
         let mut binding = Command::new("gcc");
         let mut binding = binding
             .arg("-c")
+            // .arg("-v")
             .args(self.flags.clone())
             .arg(source)
             .arg("-o")
@@ -64,7 +65,7 @@ impl M::GNode for Ofile {
         log::info!("{:?}", child);
         match child.status() {
             Ok(e) => e.success(),
-            Err(e) => {
+            Err(_e) => {
                 // writeln!(stderr, "{:?}", e).expect("write error");
                 false
             }

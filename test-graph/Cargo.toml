@@ -1,8 +1,8 @@
 [package]
-name = "geo"
+name = "test-graph"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-arc = "0.0.1"
 petgraph = "0.8.2"
+tokio = {version="1.47.1",features=["full"]}
