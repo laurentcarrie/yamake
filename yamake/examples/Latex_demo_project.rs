@@ -8,24 +8,12 @@ use std::path::PathBuf;
 
 use petgraph::dot::Dot;
 
-// ANCHOR: use
 use yamake::model as M;
-// ANCHOR_END: use
 
-// ANCHOR: use_existing_rules
 // .c source file
-use yamake::rules::c_rules::c_file::Cfile;
+use yamake::rules::tex_rules::pdf_file::Pdffile;
+use yamake::rules::tex_rules::tex_file::Texfile;
 // .h source file
-use yamake::rules::c_rules::h_file::Hfile;
-// .o built object file
-use yamake::rules::c_rules::o_file::Ofile;
-// executeble built file
-use yamake::rules::c_rules::x_file::Xfile;
-
-// granted, we should add .a libraries and .so dynamic link libraries
-// ANCHOR_END: use_existing_rules
-
-pub struct CSource;
 
 /// arguments for make
 #[derive(Debug, FromArgs)]
@@ -43,10 +31,6 @@ struct Cli {
     #[argh(positional)]
     sandbox: String,
 }
-
-// fn c_scan(include_paths: Vec<PathBuf>) -> impl M::ScanFn {
-//     |srcdir, target, stdout, stderr| c_file_scan(srcdir, target, stdout, stderr, include_paths)
-// }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -71,33 +55,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // take everything from sandbox, there might be generated files
 
     // ANCHOR: add_nodes
-    for f in vec!["project_1/main.c", "project_1/add.c"] {
-        g.add_node(Cfile::new(f.into())?)?;
-    }
-    for f in vec!["project_1/add.h", "project_1/wrapper.h"] {
-        g.add_node(Hfile::new(f.into())?)?;
+    for f in vec![
+        "project_latex/main.tex",
+        "project_latex/data.tex",
+        "project_latex/projectile.tikz",
+    ] {
+        g.add_node(Texfile::new(f.into())?)?;
     }
 
     let include_paths = vec![sandbox.clone()];
-    let compile_options = vec!["-Wall".into(), "-O2".into()];
-    for f in vec!["project_1/main.o", "project_1/add.o"] {
-        g.add_node(Ofile::new(
-            f.into(),
-            include_paths.clone(),
-            compile_options.clone(),
-        )?)?;
-    }
-
-    let link_flags = vec![];
-    g.add_node(Xfile::new("project_1/demo".into(), link_flags)?)?;
+    let flags = vec![];
+    g.add_node(Pdffile::new(
+        "project_latex/main.pdf".into(),
+        include_paths,
+        flags,
+    )?)?;
 
     // ANCHOR_END: add_nodes
 
     // ANCHOR: add_edges
-    g.add_edge("project_1/main.o".into(), "project_1/main.c".into())?;
-    g.add_edge("project_1/add.o".into(), "project_1/add.c".into())?;
-    g.add_edge("project_1/demo".into(), "project_1/main.o".into())?;
-    g.add_edge("project_1/demo".into(), "project_1/add.o".into())?;
+    g.add_edge(
+        "project_latex/main.pdf".into(),
+        "project_latex/main.tex".into(),
+    )?;
 
     // ANCHOR_END: add_edges
 

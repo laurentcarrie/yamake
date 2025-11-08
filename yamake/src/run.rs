@@ -22,6 +22,7 @@ use tokio::task::JoinSet;
 
 pub(crate) fn mount(g: &M::G) -> Result<u32, Box<dyn std::error::Error>> {
     log::info!("mount");
+    let scan_text: String = "mount".hex("#444444").italic().underline().bold();
 
     std::fs::create_dir_all(&g.sandbox)?;
     let mut count = 0;
@@ -103,7 +104,9 @@ pub(crate) async fn make(
 
     // let done_text = "DONE".hex("#8B008B").on_hex("#7FFF00").bold();
     let built_text = " BUILT ".hex("#00FFAA").bold();
-    let built_but_not_changed_text = " BBNC ".hex("#FF00AA").bold();
+    let mounted_text = " MOUNT ".hex("#0044FF").bold();
+    let mounted_not_changed_text = " MMBNC ".hex("#FF00FF").bold();
+    let built_but_not_changed_text = " BBNC ".hex("#FF0033").bold();
     let tag_text = |tag: String| tag.as_str().hex("#000033").on_hex("#eeeeee").bold();
 
     let _not_touched_text = "Skip".hex("#8B008B").on_hex("#7FFFFF").bold();
@@ -232,13 +235,15 @@ pub(crate) async fn make(
                     } else if ok_to_start && !an_ancestor_changed && !needs_rebuild {
                         log::info!("SKIP === > {:?}", node);
                         pending.remove(&ni);
-                        skipped.insert(ni);
+                        skipped.insert(ni.clone());
                         // hum... why this ?
-                        ret.insert(ni, M::BuildType::NotTouched(node.target().clone()));
-                        match tx
-                            .send((ni, M::BuildType::NotTouched(node.target().clone())))
-                            .await
-                        {
+                        let bt = if g.is_root_node(ni) {
+                            M::BuildType::MountNotChanged(node.target().clone())
+                        } else {
+                            M::BuildType::NotRebuilt(node.target().clone())
+                        };
+                        ret.insert(ni, bt.clone());
+                        match tx.send((ni, bt)).await {
                             Ok(()) => {
                                 // log::info!("ok, sent");
                                 ()
@@ -273,10 +278,15 @@ pub(crate) async fn make(
                         if g.is_root_node(ni) {
                             let needs_rebuild =
                                 g.needs_rebuild.get(&node.id()).ok_or("huh, no node")?;
+                            log::info!(
+                                "is root node ; needs rebuild '{:?}' :  {}",
+                                needs_rebuild,
+                                &node.id()
+                            );
                             let bt = if *needs_rebuild {
-                                M::BuildType::Rebuilt(node.target().clone())
+                                M::BuildType::MountChanged(node.target().clone())
                             } else {
-                                M::BuildType::NotTouched(node.target().clone())
+                                M::BuildType::MountNotChanged(node.target().clone())
                             };
                             match tx.send((ni, bt)).await {
                                 Ok(()) => (),
@@ -378,6 +388,28 @@ pub(crate) async fn make(
             ret.insert(li.0, bt.clone());
             log::info!("ret is now {:?}", ret);
             match bt {
+                M::BuildType::MountChanged(target) => {
+                    rebuilt.insert(li.0);
+                    built_targets.insert(li.0, target);
+                    pb.println(format!(
+                        "{} {:?} [{}]",
+                        // id_text(li.0),
+                        mounted_text,
+                        node.target().clone(),
+                        tag_text(node.tag()),
+                    ));
+                }
+                M::BuildType::MountNotChanged(target) => {
+                    // rebuilt.insert(li.0);
+                    built_targets.insert(li.0, target);
+                    pb.println(format!(
+                        "{} {:?} [{}]",
+                        // id_text(li.0),
+                        mounted_not_changed_text,
+                        node.target().clone(),
+                        tag_text(node.tag()),
+                    ));
+                }
                 M::BuildType::Rebuilt(target) => {
                     rebuilt.insert(li.0);
                     built_targets.insert(li.0, target);
@@ -400,7 +432,7 @@ pub(crate) async fn make(
                     ));
                 }
 
-                M::BuildType::NotTouched(target) => {
+                M::BuildType::NotRebuilt(target) => {
                     skipped.insert(li.0);
                     // let node = g.g.node_weight(ni).ok_or("huh?")?;
                     built_targets.insert(li.0, target);
@@ -520,8 +552,10 @@ pub(crate) async fn make(
     for (_k, v) in ret.iter() {
         match v {
             M::BuildType::Failed => success = false,
-            M::BuildType::Rebuilt(_)
-            | M::BuildType::NotTouched(_)
+            M::BuildType::MountChanged(_)
+            | M::BuildType::MountNotChanged(_)
+            | M::BuildType::Rebuilt(_)
+            | M::BuildType::NotRebuilt(_)
             | M::BuildType::RebuiltButUnchanged(_)
             | M::BuildType::AncestorFailed => {}
         }
@@ -606,7 +640,7 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        let scan_text = "SCANNED".hex("#7FFF00").bold();
+        let scan_text: String = "scanned".hex("#444444").italic().underline().bold();
         let tag_text = |tag: String| tag.hex("#000033").on_hex("#eeeeee").bold();
 
         pb.println(format!(

@@ -36,3 +36,6 @@ walkdir = "2.5.0"
 
 [[examples]]
 path="examples/C_demo_project.rs"
+
+[[examples]]
+path="examples/Latex_demo_project.rs"

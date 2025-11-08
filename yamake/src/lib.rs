@@ -13,13 +13,14 @@ pub mod model;
 
 /// implementation for building C projects.
 /// use it as doc
-pub mod c_project;
+pub mod rules;
 
 pub(crate) mod run;
 
 pub(crate) mod target_hash;
 
 pub(crate) mod test_c;
+pub(crate) mod test_latex;
 
 pub mod error;
 

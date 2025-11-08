@@ -1,0 +1,34 @@
+\documentclass[a4]{article}
+\usepackage{import}
+\usepackage{enumitem}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usepackage{fontspec}
+\usepackage{etoolbox}
+
+\usepackage{expl3}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+
+\title{a demo document}
+\author{yamake}
+
+\begin{document}
+
+
+\maketitle{demo}
+
+before data
+
+\input{data.tex}
+
+after data
+
+\newpage
+
+\input{projectile.tikz}
+
+
+
+
+\end{document}

@@ -1,5 +1,5 @@
 ///
-/// this module is light demo implementation of tool to compile C programs
+/// scan and build rules for building a program written in C
 ///
 
 /// scan a C file

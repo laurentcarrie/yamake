@@ -2,14 +2,13 @@
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     // use super::*;
-    use crate::c_project::c_file::Cfile;
-    use crate::c_project::h_file::Hfile;
-    use crate::c_project::o_file::Ofile;
-    use crate::c_project::x_file::Xfile;
     use crate::error as E;
     use crate::model as M;
+    use crate::rules::c_rules::c_file::Cfile;
+    use crate::rules::c_rules::h_file::Hfile;
+    use crate::rules::c_rules::o_file::Ofile;
+    use crate::rules::c_rules::x_file::Xfile;
     // use futures::executor;
-    use petgraph::graph::NodeIndex;
     use simple_logging;
     use std::path::PathBuf;
     use tempdir::TempDir;
@@ -26,7 +25,7 @@ mod tests {
             "project_1/add.h",
             "project_1/wrapper.h",
         ] {
-            let mut f = PathBuf::from("../a_demo_project_in_C");
+            let mut f = PathBuf::from("../demo_projects");
             f.push(f1);
             let mut p = srcdir.clone();
             p.push(f1);
@@ -176,7 +175,23 @@ mod tests {
 
         for (ni, v) in ret.nt.iter() {
             let node = g.g.node_weight(*ni).ok_or("x")?;
-            assert_eq!(*v, M::BuildType::NotTouched(node.target()));
+            match node.target().to_str().unwrap() {
+                "project_1/add.h"
+                | "project_1/add.c"
+                | "project_1/main.c"
+                | "project_1/main.h"
+                | "project_1/wrapper.h" => {
+                    assert_eq!(*v, M::BuildType::MountNotChanged(node.target()))
+                }
+                "project_1/main.o" | "project_1/demo" | "project_1/add.o" => {
+                    assert_eq!(*v, M::BuildType::NotRebuilt(node.target()))
+                }
+
+                _ => {
+                    log::error!("{:?}", node);
+                    assert!(false)
+                }
+            };
         }
 
         Ok(())
@@ -207,10 +222,11 @@ mod tests {
             // log::info!("xxx : {:?} ; {:?}",&ni,&value) ;
             match node.target().to_str().unwrap() {
                 "project_1/add.o" => assert_eq!(*value, M::BuildType::Rebuilt(node.target())),
+                "project_1/main.o" => assert_eq!(*value, M::BuildType::NotRebuilt(node.target())),
                 "project_1/demo" => {
                     assert_eq!(*value, M::BuildType::RebuiltButUnchanged(node.target()))
                 }
-                _ => assert_eq!(*value, M::BuildType::NotTouched(node.target())),
+                _ => assert_eq!(*value, M::BuildType::MountNotChanged(node.target())),
             }
         }
 

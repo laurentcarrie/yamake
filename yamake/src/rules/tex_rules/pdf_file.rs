@@ -1,12 +1,12 @@
-use crate::c_project::c_scan::c_file_scan;
 use crate::model as M;
+use crate::rules::tex_rules::tex_scan::tex_file_scan;
 use std::path::PathBuf;
 use std::process::Command;
 
 // ANCHOR: structofile
 
 #[derive(Debug, Clone)]
-pub struct Ofile {
+pub struct Pdffile {
     target: PathBuf,
     include_paths: Vec<PathBuf>,
     flags: Vec<String>,
@@ -14,13 +14,13 @@ pub struct Ofile {
 
 // ANCHOR_END: structofile
 
-impl Ofile {
+impl Pdffile {
     pub fn new(
         target: PathBuf,
         include_paths: Vec<PathBuf>,
         flags: Vec<String>,
-    ) -> Result<Ofile, Box<dyn std::error::Error>> {
-        Ok(Ofile {
+    ) -> Result<Pdffile, Box<dyn std::error::Error>> {
+        Ok(Pdffile {
             target,
             include_paths,
             flags,
@@ -28,10 +28,10 @@ impl Ofile {
     }
 }
 
-impl M::GNode for Ofile {
+impl M::GNode for Pdffile {
     fn build(
         &self,
-        sandbox: PathBuf,
+        _sandbox: PathBuf,
         sources: Vec<M::PathWithTag>,
         stdout: std::fs::File,
         stderr: std::fs::File,
@@ -39,28 +39,35 @@ impl M::GNode for Ofile {
         // sources has both sources and scanned deps, so one .c file and all the .h scanned deps
         let sources = sources
             .iter()
-            .filter(|x| x.tag == "c file")
+            .filter(|x| x.tag == "tex file")
             .collect::<Vec<_>>();
         if sources.len() != 1 {
-            log::error!("bad graph construct for node {:?}", self);
+            log::error!(
+                "bad graph construct for node {:?}, sources.len()={}",
+                self,
+                sources.len()
+            );
             return false;
         }
         let source = sources.get(0).expect("one node").path.clone();
+        log::info!("source : {:?}", &source);
 
-        let mut binding = Command::new("gcc");
-        let mut binding = binding
-            .arg("-c")
-            // .arg("-v")
+        let mut binding = Command::new("lualatex");
+        let binding = binding
+            .arg("--interaction=nonstopmode")
             .args(self.flags.clone())
-            .arg(source)
-            .arg("-o")
+            .arg(&source)
             .arg(self.target())
-            .current_dir(&sandbox)
+            .current_dir(
+                source
+                    .clone()
+                    .parent()
+                    .expect("parent")
+                    .to_str()
+                    .expect("parent"),
+            )
             .stdout(stdout)
             .stderr(stderr);
-        for pi in &self.include_paths {
-            binding = binding.arg("-I").arg(pi);
-        }
         let child = binding;
         log::info!("{:?}", child);
         match child.status() {
@@ -96,14 +103,18 @@ impl M::GNode for Ofile {
         // }
         let sources = sources
             .iter()
-            .filter(|x| x.tag == "c file")
+            .filter(|x| x.tag == "tex file")
             .collect::<Vec<_>>();
         if sources.len() != 1 {
-            log::error!("bad graph construct for node {:?}", self);
+            log::error!(
+                "bad graph construct for node {:?}, sources.len()={}",
+                self,
+                sources.len()
+            );
             return Err(format!("bad graph construct for node {:?}", self).into());
         }
         let source = sources.get(0).expect("one node").path.clone();
-        let deps = c_file_scan(srcdir, source.clone(), self.include_paths.clone())?;
+        let deps = tex_file_scan(srcdir, source.clone(), self.include_paths.clone())?;
         Ok(deps)
     }
     // ANCHOR_END: scan
@@ -116,7 +127,7 @@ impl M::GNode for Ofile {
 
     // ANCHOR: tag
     fn tag(&self) -> String {
-        "o file".to_string()
+        "pdf file".to_string()
     }
     // ANCHOR_END: tag
 
