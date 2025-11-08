@@ -25,7 +25,7 @@ jobs:
           curl -sSL $url -o mdbook.tar.gz
           tar xzf mdbook.tar.gz --directory=./mdbook
           echo `pwd`/mdbook >> $GITHUB_PATH
-          cargo install mdbook-mermaid
+          cargo install mdbook-mermaid mdbook-alerts mdbook-emoji mdbook-toc mdbook-pikchr
           mdbook-mermaid install doc
       - name: Build Book
         run: |
