@@ -2,6 +2,7 @@ use crate::error as E;
 use colored_text::Colorize;
 use log;
 use petgraph::Direction::Incoming;
+use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -10,7 +11,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use petgraph::graph::NodeIndex;
 use std::collections::{HashMap, HashSet};
-use std::result::{self, Result};
+use std::result::Result;
 // use std::time::Duration;
 
 use crate::model::PathWithTag;
@@ -330,9 +331,9 @@ pub(crate) async fn make(
                                     log::info!("new digest : {new_digest:?}");
 
                                     if old_digest != new_digest {
-                                        M::BuildType::Rebuilt(target)
+                                        M::BuildType::Rebuilt(node.target())
                                     } else {
-                                        M::BuildType::RebuiltButUnchanged(target)
+                                        M::BuildType::RebuiltButUnchanged(node.target())
                                     }
                                 } else {
                                     // process ran and exited with code != 0
@@ -455,16 +456,64 @@ pub(crate) async fn make(
     pb.finish_with_message("done");
 
     {
+        // structs to write the output build report in json
+        #[derive(Debug, Serialize)]
+        pub struct ResultItem {
+            pub target: String,
+            pub stdout: String,
+            pub stderr: String,
+            pub status: String,
+        }
+
+        #[derive(Debug, Serialize)]
+        pub struct Result {
+            pub srcdir: String,
+            pub sandbox: String,
+            pub items: Vec<ResultItem>,
+        }
+
         // write the results to a file
         let mut resultpath = g.sandbox.clone();
-        resultpath.push("make_result.json");
-        let mut x: Vec<(PathBuf, M::BuildType, usize)> = vec![];
+        resultpath.push("make-report.json");
+        // let mut x: Vec<(PathBuf, M::BuildType, usize)> = vec![];
+        let mut items: Vec<ResultItem> = vec![];
         for (ni, bt) in ret.iter() {
             let node = g.g.node_weight(*ni).ok_or("huh ?")?;
             log::info!("{} : {:?} => {:?}", node.id(), node.target(), bt);
-            x.push((node.target().clone(), bt.clone(), ni.index()));
+            let target: String = node
+                .target()
+                .as_os_str()
+                .to_str()
+                .expect("target path")
+                .into();
+            let stdout = node
+                .target()
+                .as_os_str()
+                .to_str()
+                .expect("target path")
+                .to_string()
+                + "-stdout.log";
+            let stderr = node
+                .target()
+                .as_os_str()
+                .to_str()
+                .expect("target path")
+                .to_string()
+                + "-stderr.log";
+            let item = ResultItem {
+                target: target,
+                stdout: stdout,
+                stderr: stderr,
+                status: bt.to_string(),
+            };
+            items.push(item);
         }
-        std::fs::write(resultpath, serde_json::to_string_pretty(&x)?)?;
+        let result = Result {
+            srcdir: g.srcdir.to_str().expect("sandbox").to_string(),
+            sandbox: g.sandbox.to_str().expect("sandbox").to_string(),
+            items: items,
+        };
+        std::fs::write(resultpath, serde_json::to_string_pretty(&result)?)?;
     }
 
     let mut success = true;
@@ -561,7 +610,7 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
         let tag_text = |tag: String| tag.hex("#000033").on_hex("#eeeeee").bold();
 
         pb.println(format!(
-            "{scan_text} {:?} [{}] : added  {} edge(s)",
+            "{scan_text} {:?} [{}] : added {} scanned edge(s)",
             // id_text(ni),
             &n.target(),
             tag_text(n.tag()),

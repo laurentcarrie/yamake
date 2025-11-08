@@ -24,7 +24,7 @@ impl M::GNode for Xfile {
         &self,
         sandbox: PathBuf,
         sources: Vec<M::PathWithTag>,
-        mut stdout: std::fs::File,
+        stdout: std::fs::File,
         mut stderr: std::fs::File,
     ) -> bool {
         let mut filtered_sources: Vec<PathBuf> = vec![];
@@ -40,6 +40,7 @@ impl M::GNode for Xfile {
         let mut binding = Command::new("gcc");
         let binding = binding
             .args(filtered_sources)
+            // .arg("-v")
             .arg("-o")
             .arg(self.target())
             .args(self.flags.clone())
@@ -52,7 +53,7 @@ impl M::GNode for Xfile {
 
         match child.status() {
             Ok(e) => e.success(),
-            Err(e) => {
+            Err(_e) => {
                 // writeln!(stderr, "{:?}", e).expect("write error");
                 false
             }

@@ -26,7 +26,7 @@ mod tests {
             "project_1/add.h",
             "project_1/wrapper.h",
         ] {
-            let mut f = PathBuf::from("../c_example");
+            let mut f = PathBuf::from("../a_demo_project_in_C");
             f.push(f1);
             let mut p = srcdir.clone();
             p.push(f1);
@@ -178,6 +178,49 @@ mod tests {
             let node = g.g.node_weight(*ni).ok_or("x")?;
             assert_eq!(*v, M::BuildType::NotTouched(node.target()));
         }
+
+        Ok(())
+    }
+
+    /// test that if we delete a built node and remake, then this node has status r
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn test_rebuild_untouched2() -> Result<(), Box<dyn std::error::Error>> {
+        simple_logging::log_to_stderr(log::LevelFilter::Info);
+
+        let mut g = make_graph().await?;
+        println!("sandbox is {:?}", g.sandbox);
+        let ret = g.make(false, 4).await?;
+        assert!(ret.success);
+        log::info!("delete add.o");
+        let mut p = g.sandbox.clone();
+        p.push("project_1");
+        p.push("add.o");
+        assert!(p.exists());
+        let _ = std::fs::remove_file(&p);
+        assert!(!p.exists());
+
+        log::info!("second run");
+        let ret = g.make(false, 4).await?;
+        assert!(ret.success);
+        for (ni, value) in &ret.nt {
+            let node = g.g.node_weight(*ni).ok_or("x")?;
+            // log::info!("xxx : {:?} ; {:?}",&ni,&value) ;
+            match node.target().to_str().unwrap() {
+                "project_1/add.o" => assert_eq!(*value, M::BuildType::Rebuilt(node.target())),
+                "project_1/demo" => {
+                    assert_eq!(*value, M::BuildType::RebuiltButUnchanged(node.target()))
+                }
+                _ => assert_eq!(*value, M::BuildType::NotTouched(node.target())),
+            }
+        }
+
+        // for (ni, v) in ret.nt.iter() {
+        //     let node = g.g.node_weight(*ni).ok_or("x")?;
+        //     match node.target().to_str().unwrap() {
+        //         "project_1/add.o" => assert_eq!(*v, M::BuildType::NotTouched(node.target())),
+        //         _ => assert_eq!(*v, M::BuildType::NotTouched(node.target())),
+        //      }
+        // }
 
         Ok(())
     }

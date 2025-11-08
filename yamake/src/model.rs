@@ -1,3 +1,5 @@
+use std::fmt;
+
 use colored_text::Colorize;
 use petgraph::Graph;
 use serde::{Deserialize, Serialize};
@@ -207,17 +209,37 @@ impl G {
     }
 }
 
+// ANCHOR: buildtype
 #[derive(PartialEq, Debug, Hash, Clone, Serialize, Deserialize)]
 pub enum BuildType {
+    /// the node was rebuilt (and changed)
     Rebuilt(PathBuf),
+    /// the node was rebuild, but not changed
     RebuiltButUnchanged(PathBuf),
+    /// the node was not touched (because none of its deps has changed)
     NotTouched(PathBuf),
+    /// there was a built error in one of the ancestors, therefore this node is failed
+    /// (there was no attempt to rebuild it)
     AncestorFailed,
+    /// building this node has failed
     Failed,
 }
+// ANCHOR_END: buildtype
 
 #[derive(Debug)]
 pub struct MakeReturn {
     pub success: bool,
     pub nt: HashMap<NodeIndex, BuildType>,
+}
+
+impl fmt::Display for BuildType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            BuildType::Rebuilt(_) => write!(f, "Rebuilt"),
+            BuildType::RebuiltButUnchanged(_) => write!(f, "RebuiltButUnchanged"),
+            BuildType::NotTouched(_) => write!(f, "NotTouched"),
+            BuildType::AncestorFailed => write!(f, "AncestorFailed"),
+            BuildType::Failed => write!(f, "Failed"),
+        }
+    }
 }
