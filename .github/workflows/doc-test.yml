@@ -20,7 +20,7 @@ jobs:
           # tar xzf mdbook.tar.gz --directory=./mdbook
           # echo `pwd`/mdbook >> $GITHUB_PATH
           # install
-          cargo install mdbook mdbook-mermaid mdbook-alerts mdbook-emoji mdbook-toc mdbook-pikchr
+          cargo install mdbook mdbook-mermaid mdbook-alerts mdbook-emojicodes mdbook-toc mdbook-pikchr
           mdbook-mermaid install doc
       - name: Build Book
         run: |
