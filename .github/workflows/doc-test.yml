@@ -1,8 +1,8 @@
 name: mdbook-test
 on:
   push:
-    branches:
-      - !main
+    branches-ignore:
+      - main
 
 jobs:
   deploy:
