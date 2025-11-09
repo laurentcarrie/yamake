@@ -37,4 +37,3 @@ jobs:
       #     cp -R software/others $target/.
       #     find  $target/others -type f  | while read f ; do echo $f ; cp $f $f.txt ; done
       #     ls -R $target
-
