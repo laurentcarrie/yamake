@@ -1,18 +1,12 @@
-name: mdbook
+name: mdbook-test
 on:
   push:
-    branches:
+    branches-ignore:
       - main
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # To push a branch
-      pages: write  # To push to a GitHub Pages site
-      id-token: write # To update the deployment status
-    environment:
-      name: github-pages
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,6 +19,7 @@ jobs:
           # curl -sSL $url -o mdbook.tar.gz
           # tar xzf mdbook.tar.gz --directory=./mdbook
           # echo `pwd`/mdbook >> $GITHUB_PATH
+          # install
           cargo install mdbook mdbook-mermaid mdbook-alerts mdbook-emojicodes mdbook-toc mdbook-pikchr
           mdbook-mermaid install doc
       - name: Build Book
@@ -42,14 +37,3 @@ jobs:
       #     cp -R software/others $target/.
       #     find  $target/others -type f  | while read f ; do echo $f ; cp $f $f.txt ; done
       #     ls -R $target
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Upload entire repository
-          path: 'doc/book'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4

@@ -25,10 +25,7 @@ default-theme = "rust"
 preferred-dark-theme = "navy"
 additional-css = ["theme/css/custom.css"]
 
-
 #[output.html.redirect]
-
-
 
 [preprocessor.alerts]
 
