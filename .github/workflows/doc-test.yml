@@ -1,0 +1,46 @@
+name: mdbook-test
+on:
+  push:
+    branches:
+      - !main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # To push a branch
+      pages: write  # To push to a GitHub Pages site
+      id-token: write # To update the deployment status
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install latest mdbook
+        run: |
+          # tag=$(curl 'https://api.github.com/repos/rust-lang/mdbook/releases/latest' | jq -r '.tag_name')
+          # url="https://github.com/rust-lang/mdbook/releases/download/${tag}/mdbook-${tag}-x86_64-unknown-linux-gnu.tar.gz"
+          # mkdir mdbook
+          # curl -sSL $url -o mdbook.tar.gz
+          # tar xzf mdbook.tar.gz --directory=./mdbook
+          # echo `pwd`/mdbook >> $GITHUB_PATH
+          # install
+          cargo install mdbook mdbook-mermaid mdbook-alerts mdbook-emoji mdbook-toc mdbook-pikchr
+          mdbook-mermaid install doc
+      - name: Build Book
+        run: |
+          cd doc
+          mdbook build
+      # - name: Build cargo doc
+      #   run: |
+      #     ( cd software && cargo +nightly doc )
+      #     src=software/target/doc
+      #     target=doc/srs/book
+      #     mkdir -p $target
+      #     cp -R $src/static.files $target/.
+      #     cp -R $src/songbook $target/.
+      #     cp -R software/others $target/.
+      #     find  $target/others -type f  | while read f ; do echo $f ; cp $f $f.txt ; done
+      #     ls -R $target
+
