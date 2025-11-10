@@ -9,9 +9,3 @@ but very different, some features :
 - use file digest, not timestamp : avoir useless rebuild
 - one log file per action, not one stdout for the whole build process
 - etc
-
-<<<<<<< HEAD
-see the doc
-=======
-
->>>>>>> 54aee85 (doc-test.yml)

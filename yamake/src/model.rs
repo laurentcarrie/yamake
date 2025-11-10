@@ -212,12 +212,16 @@ impl G {
 // ANCHOR: buildtype
 #[derive(PartialEq, Debug, Hash, Clone, Serialize, Deserialize)]
 pub enum BuildType {
+    /// the node is remounted but is different than before
+    MountChanged(PathBuf),
+    /// the node is remounted but is the same as before
+    MountNotChanged(PathBuf),
     /// the node was rebuilt (and changed)
     Rebuilt(PathBuf),
     /// the node was rebuild, but not changed
     RebuiltButUnchanged(PathBuf),
     /// the node was not touched (because none of its deps has changed)
-    NotTouched(PathBuf),
+    NotRebuilt(PathBuf),
     /// there was a built error in one of the ancestors, therefore this node is failed
     /// (there was no attempt to rebuild it)
     AncestorFailed,
@@ -235,9 +239,11 @@ pub struct MakeReturn {
 impl fmt::Display for BuildType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            BuildType::MountChanged(_) => write!(f, "Mounted"),
+            BuildType::MountNotChanged(_) => write!(f, "NotReMounted"),
             BuildType::Rebuilt(_) => write!(f, "Rebuilt"),
             BuildType::RebuiltButUnchanged(_) => write!(f, "RebuiltButUnchanged"),
-            BuildType::NotTouched(_) => write!(f, "NotTouched"),
+            BuildType::NotRebuilt(_) => write!(f, "NotRebuilt"),
             BuildType::AncestorFailed => write!(f, "AncestorFailed"),
             BuildType::Failed => write!(f, "Failed"),
         }

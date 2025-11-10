@@ -53,7 +53,7 @@ make run show-report
 you will see that :
     - `project_1/add.c` has status `Rebuilt`. The source file changed
     - `project_1/add.o` has status `RebuiltButUnchanged`, because we only added a comment
-    - `project_1/demo` has status `NotTouched`, because all its deps have the same digest as before the build, it does not need to be rebuilt.
+    - `project_1/demo` has status `NotRebuilt`, because all its deps have the same digest as before the build, it does not need to be rebuilt.
 
 ---
 
