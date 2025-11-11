@@ -1,6 +1,6 @@
 Yet Another Make Tool
 
-see the doc on [https://laurentcarrie.github.io/yamake/](project mdbook doc on github pages)
+see the doc on [project mdbook doc on github pages](https://laurentcarrie.github.io/yamake/)
 
 
 but very different, some features :
