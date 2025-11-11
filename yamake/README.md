@@ -1,6 +1,7 @@
 Yet Another Make Tool
 
-see the doc on https://laurentcarrie.github.io/yamake/
+see the doc on [https://laurentcarrie.github.io/yamake/](project mdbook doc on github pages)
+
 
 but very different, some features :
 - this is a crate, you build your own `make` command by creating a rust program with this crate
