@@ -29,8 +29,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: publish
+      - name: publish dry run to test validity of package
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           ( cd yamake && cargo publish --dry-run )
+      - name: test version
+        run: |
+          ./tools/check-public-version.sh
