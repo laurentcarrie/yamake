@@ -20,7 +20,7 @@ run `make help`
 
 # real life
 
-for the demo, the source files are explicitely listed in the source code. To make it exensible, you might 
+for the demo, the source files are explicitely listed in the source code. To make it exensible, you might
 - scan the source directory to automatically find the .c and .h files, and have some heuristic for building libs and exes.
 - or have some `description.yml` file of your project, where you list the sources, the libraries, exes, ... à la cmake
 

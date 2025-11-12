@@ -33,7 +33,7 @@ run_2: build ## demo : build, delete an artefact, build again
 ## ANCHOR: run_2
 	@rm -rf $(sandbox)
 	@mkdir -p $(sandbox)
-	@git checkout HEAD -- demo_projects 
+	@git checkout HEAD -- demo_projects
 	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)delete add.o, build again$(Color_Off)\n"
@@ -47,7 +47,7 @@ run_3: build ## demo : make a change in the source, that has no effect (eg, add 
 ## ANCHOR: run_3
 	@rm -rf $(sandbox)
 	@mkdir -p $(sandbox)
-	@git checkout HEAD -- demo_projects 
+	@git checkout HEAD -- demo_projects
 	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)add a comment$(Color_Off)\n"
@@ -61,7 +61,7 @@ run_4: build ## demo : make a change in the source, that is an coding error
 ## ANCHOR: run_4
 	@rm -rf $(sandbox)
 	@mkdir -p $(sandbox)
-	@git checkout HEAD -- demo_projects 
+	@git checkout HEAD -- demo_projects
 	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)add a comment$(Color_Off)\n"
