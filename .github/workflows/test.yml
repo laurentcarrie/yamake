@@ -1,8 +1,7 @@
-name: rust
+name: rust tests
 on:
   push:
-    branches:
-      - work
+    branches-ignore:
       - main
 
 jobs:

@@ -14,9 +14,62 @@ help: ## Show this help message
 	@echo "Available commands:"
 # 	echo $(MAKEFILE_LIST)
 #	was $(MAKEFILE_LIST) but fails if there is an include. So we use Makefile
-	@grep -E '^[ a-zA-Z_-]+:.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "$(Red)%-20s$(Color_Off) : $(Blue)%s$(Color_Off)\n", $$1, $$2}'
+	@grep -E '^[ a-zA-Z_0-9-]+:.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "$(Red)%-20s$(Color_Off) : $(Blue)%s$(Color_Off)\n", $$1, $$2}'
 
+run_1: build ## demo : use our demo C tool, to compile our demo C project
+## ANCHOR: run_1
+	@rm -rf $(sandbox)
+	@mkdir -p $(sandbox)
+	@git checkout HEAD -- demo_projects
+	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
+	$(my_C_tool) $(srcdir) $(sandbox)
+	@printf "\n$(White)$(On_Blue)run the compiled program$(Color_Off)\n"
+	@./$(sandbox)/project_1/demo
+	@printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n"
+	@cp $(sandbox)/make-report.json doc/src/make-reports/run_1.json
+## ANCHOR_END: run_1
 
+run_2: build ## demo : build, delete an artefact, build again
+## ANCHOR: run_2
+	@rm -rf $(sandbox)
+	@mkdir -p $(sandbox)
+	@git checkout HEAD -- demo_projects 
+	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
+	$(my_C_tool) $(srcdir) $(sandbox)
+	@printf "\n$(White)$(On_Blue)delete add.o, build again$(Color_Off)\n"
+	rm $(sandbox)/project_1/add.o
+	$(my_C_tool) $(srcdir) $(sandbox)
+	@printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n"
+	@cp $(sandbox)/make-report.json doc/src/make-reports/run_2.json
+## ANCHOR_END: run_2
+
+run_3: build ## demo : make a change in the source, that has no effect (eg, add a comment)
+## ANCHOR: run_3
+	@rm -rf $(sandbox)
+	@mkdir -p $(sandbox)
+	@git checkout HEAD -- demo_projects 
+	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
+	$(my_C_tool) $(srcdir) $(sandbox)
+	@printf "\n$(White)$(On_Blue)add a comment$(Color_Off)\n"
+	echo "// a C comment " >> $(srcdir)/project_1/add.c
+	$(my_C_tool) $(srcdir) $(sandbox)
+	@printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n"
+	@cp $(sandbox)/make-report.json doc/src/make-reports/run_3.json
+## ANCHOR_END: run_3
+
+run_4: build ## demo : make a change in the source, that is an coding error
+## ANCHOR: run_4
+	@rm -rf $(sandbox)
+	@mkdir -p $(sandbox)
+	@git checkout HEAD -- demo_projects 
+	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
+	$(my_C_tool) $(srcdir) $(sandbox)
+	@printf "\n$(White)$(On_Blue)add a comment$(Color_Off)\n"
+	echo "blah blah " >> $(srcdir)/project_1/add.c
+	$(my_C_tool) $(srcdir) $(sandbox)
+	@printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n"
+	@cp $(sandbox)/make-report.json doc/src/make-reports/run_4.json
+## ANCHOR_END: run_4
 
 run : build ## use our demo C tool, to compile our demo C project
 	@mkdir -p $(sandbox)
