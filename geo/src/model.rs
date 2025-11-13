@@ -122,7 +122,7 @@ pub struct MyGraph {
     nodes: Vec<Arc<dyn TNamedQuadrilatere>>,
     // nodes: HashMap<N, P::graph::NodeIndex>,
     //indices: HashMap<P::graph::NodeIndex, N>,
-    pub g: P::graph::Graph<Arc<dyn TNamedQuadrilatere>, EG, P::Directed>,
+    pub g: P::graph::Graph<Arc<dyn TNamedQuadrilatere>, EG, P::Explicited>,
 }
 
 impl MyGraph {

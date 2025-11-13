@@ -80,7 +80,7 @@ impl std::fmt::Debug for dyn GNode {
 #[derive(Debug)]
 pub enum EKind {
     Scanned,
-    Direct,
+    Explicit,
 }
 
 #[derive(Debug)]
@@ -172,7 +172,7 @@ impl G {
             nifrom,
             nito,
             E {
-                kind: EKind::Direct,
+                kind: EKind::Explicit,
             },
         )?;
         Ok(())
@@ -182,7 +182,7 @@ impl G {
         for npred in self.g.edges_directed(ni, petgraph::Incoming) {
             match npred.weight().kind {
                 EKind::Scanned => (),
-                EKind::Direct => {
+                EKind::Explicit => {
                     return false;
                 }
             }

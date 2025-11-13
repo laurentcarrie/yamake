@@ -101,22 +101,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ANCHOR_END: add_edges
 
-    // ANCHOR: dot
+    // ANCHOR: before-scan
     let basic_dot = Dot::new(&g.g);
     let mut pdot = sandbox.clone();
     pdot.push("before-scan.dot");
     std::fs::write(pdot, format!("{:?}", basic_dot))?;
-    // ANCHOR_END: dot
-
-    // ANCHOR: scan
-    g.scan().await?;
-
-    let basic_dot = Dot::new(&g.g);
-    let mut pdot = sandbox.clone();
-    pdot.push("after-scan.dot");
-    std::fs::write(pdot, format!("{:?}", basic_dot))?;
-
-    // ANCHOR_END: scan
+    // ANCHOR_END: before-scan
 
     // ANCHOR: make
     match g.make(cli.force, cli.nb_workers).await {

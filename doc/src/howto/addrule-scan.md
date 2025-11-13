@@ -55,7 +55,7 @@ This is the correct way. If either f.c or constants.h change, f.o needs to be re
 
 flowchart
 
-    f.c -- Direct --> f.o
+    f.c -- Explicit --> f.o
     constants.h -- Scanned --> f.o
 
 

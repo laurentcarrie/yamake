@@ -2,6 +2,8 @@ use crate::error as E;
 use colored_text::Colorize;
 use log;
 use petgraph::Direction::Incoming;
+use petgraph::dot::Dot;
+use petgraph::visit::EdgeRef;
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -94,8 +96,8 @@ pub(crate) async fn make(
         .unwrap(),
     );
 
-    let count = mount(g)?;
-    println!("{count} nodes are mounted ; {} in total", g.g.node_count());
+    let _count = mount(g)?;
+    // println!("{count} nodes are mounted ; {} in total", g.g.node_count());
 
     g.scan().await?;
     compute_needs_rebuild(g)?;
@@ -113,10 +115,11 @@ pub(crate) async fn make(
 
     let _not_touched_text = "Skip".hex("#8B008B").on_hex("#7FFFFF").bold();
     let failed_text = "FAILED"
-        .hex("#FF1493")
+        // .hex("#FF1493")
         // .on_hex("#F0FFFF")
-        .on_hex("#d38a8aff")
-        .bold();
+        // .on_hex("#d38a8aff")
+        .bold()
+        .on_red();
     // let ancestor_failed_text = "Ancestor Failed".hex("#FF8C00").on_hex("#000000").bold();
     let ancestor_failed_text = "Ancestor Failed".hex("#FF8C00").bold();
     let _id_text = |id: NodeIndex| -> String {
@@ -497,6 +500,8 @@ pub(crate) async fn make(
             pub stdout: String,
             pub stderr: String,
             pub status: String,
+            pub explicit_preds: Vec<String>,
+            pub scanned_deps: Vec<String>,
         }
 
         #[derive(Debug, Serialize)]
@@ -534,11 +539,35 @@ pub(crate) async fn make(
                 .expect("target path")
                 .to_string()
                 + "-stderr.log";
+            let mut explicit_preds: Vec<String> = vec![];
+            let mut scanned_deps: Vec<String> = vec![];
+
+            for e in g.g.edges_directed(*ni, Incoming) {
+                log::info!("{:?}", e);
+                log::info!("{:?}", e.weight());
+                let n2 = g.g.node_weight(e.source()).ok_or("hugh ?")?;
+                log::info!("{:?}", n2.target());
+                let p: String = n2
+                    .target()
+                    .clone()
+                    .as_os_str()
+                    .to_str()
+                    .expect("target path")
+                    .into();
+                match e.weight().kind {
+                    M::EKind::Explicit => explicit_preds.push(p),
+                    M::EKind::Scanned => scanned_deps.push(p),
+                }
+                // unimplemented!();
+            }
+
             let item = ResultItem {
                 target: target,
                 stdout: stdout,
                 stderr: stderr,
                 status: bt.to_string(),
+                explicit_preds: explicit_preds,
+                scanned_deps: scanned_deps,
             };
             items.push(item);
         }
@@ -584,7 +613,7 @@ pub(crate) async fn make(
 }
 
 pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
-    mount(g)?;
+    // mount(g)?;
     let _id_text = |id: NodeIndex| -> String {
         format!("{:3}", id.index())
             .hex("#8B008B")
@@ -598,6 +627,13 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
         )
         .unwrap(),
     );
+
+    // ANCHOR: before-scan
+    let basic_dot = Dot::new(&g.g);
+    let mut pdot = g.sandbox.clone();
+    pdot.push("before-scan.dot");
+    std::fs::write(pdot, format!("{:?}", basic_dot))?;
+    // ANCHOR_END: before-scan
 
     let mut logpath = g.sandbox.clone();
     logpath.push("log");
@@ -664,6 +700,13 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
             },
         )?;
     }
+
+    // ANCHOR: after-scan
+    let basic_dot = Dot::new(&g.g);
+    let mut pdot = g.sandbox.clone();
+    pdot.push("after-scan.dot");
+    std::fs::write(pdot, format!("{:?}", basic_dot))?;
+    // ANCHOR_END: after-scan
 
     Ok(())
 }
