@@ -3,17 +3,36 @@
   "sandbox": "/Users/laurent/work/yamake/sandbox",
   "items": [
     {
-      "target": "project_1/main.c",
-      "stdout": "project_1/main.c-stdout.log",
-      "stderr": "project_1/main.c-stderr.log",
+      "target": "project_1/add.h",
+      "stdout": "project_1/add.h-stdout.log",
+      "stderr": "project_1/add.h-stderr.log",
       "status": "NotReMounted",
       "explicit_preds": [],
       "scanned_deps": []
     },
     {
-      "target": "project_1/add.h",
-      "stdout": "project_1/add.h-stdout.log",
-      "stderr": "project_1/add.h-stderr.log",
+      "target": "project_1/add.c",
+      "stdout": "project_1/add.c-stdout.log",
+      "stderr": "project_1/add.c-stderr.log",
+      "status": "Mounted",
+      "explicit_preds": [],
+      "scanned_deps": []
+    },
+    {
+      "target": "project_1/demo",
+      "stdout": "project_1/demo-stdout.log",
+      "stderr": "project_1/demo-stderr.log",
+      "status": "NotRebuilt",
+      "explicit_preds": [
+        "project_1/add.o",
+        "project_1/main.o"
+      ],
+      "scanned_deps": []
+    },
+    {
+      "target": "project_1/main.c",
+      "stdout": "project_1/main.c-stdout.log",
+      "stderr": "project_1/main.c-stderr.log",
       "status": "NotReMounted",
       "explicit_preds": [],
       "scanned_deps": []
@@ -50,25 +69,6 @@
       "scanned_deps": [
         "project_1/add.h"
       ]
-    },
-    {
-      "target": "project_1/add.c",
-      "stdout": "project_1/add.c-stdout.log",
-      "stderr": "project_1/add.c-stderr.log",
-      "status": "Mounted",
-      "explicit_preds": [],
-      "scanned_deps": []
-    },
-    {
-      "target": "project_1/demo",
-      "stdout": "project_1/demo-stdout.log",
-      "stderr": "project_1/demo-stderr.log",
-      "status": "NotRebuilt",
-      "explicit_preds": [
-        "project_1/add.o",
-        "project_1/main.o"
-      ],
-      "scanned_deps": []
     }
   ]
 }
