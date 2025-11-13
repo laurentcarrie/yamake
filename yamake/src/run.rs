@@ -22,7 +22,8 @@ use tokio::task::JoinSet;
 
 pub(crate) fn mount(g: &M::G) -> Result<u32, Box<dyn std::error::Error>> {
     log::info!("mount");
-    let scan_text: String = "mount".hex("#444444").italic().underline().bold();
+    let mount_text: String = "mount".hex("#444444").italic().underline().bold();
+    let pb = ProgressBar::new(g.g.node_indices().count().try_into().unwrap());
 
     std::fs::create_dir_all(&g.sandbox)?;
     let mut count = 0;
@@ -60,6 +61,12 @@ pub(crate) fn mount(g: &M::G) -> Result<u32, Box<dyn std::error::Error>> {
                 target_in_srcdir.clone().as_os_str(),
                 target_in_sandbox.as_os_str(),
             )?;
+            pb.println(format!(
+                "{mount_text} {:?} ",
+                // id_text(ni),
+                &n.target(),
+            ));
+            pb.inc(1);
             count += 1;
         }
     }
@@ -97,16 +104,11 @@ pub(crate) async fn make(
 
     let mut set: JoinSet<()> = JoinSet::new();
 
-    log::info!("{}:{} SCAN", file!(), line!());
-    // g.scan().await?;
-
-    // let g: petgraph::Graph<M::N, M::E> = g.g;
-
     // let done_text = "DONE".hex("#8B008B").on_hex("#7FFF00").bold();
-    let built_text = " BUILT ".hex("#00FFAA").bold();
-    let mounted_text = " MOUNT ".hex("#0044FF").bold();
-    let mounted_not_changed_text = " MMBNC ".hex("#FF00FF").bold();
-    let built_but_not_changed_text = " BBNC ".hex("#FF0033").bold();
+    let built_text = "BUILT ".hex("#00FFAA").bold();
+    let mounted_text = "MOUNTED changed ".hex("#0044FF").bold();
+    let mounted_not_changed_text = "MOUNTED not changed ".hex("#FF00FF").bold();
+    let built_but_not_changed_text = "BUILT not changed ".hex("#FF0033").bold();
     let tag_text = |tag: String| tag.as_str().hex("#000033").on_hex("#eeeeee").bold();
 
     let _not_touched_text = "Skip".hex("#8B008B").on_hex("#7FFFFF").bold();
