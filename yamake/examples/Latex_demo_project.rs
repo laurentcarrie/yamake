@@ -1,19 +1,12 @@
 use argh::FromArgs;
 use log;
-// use petgraph::Direction::Incoming;
 use simple_logging;
-// use tokio::process::Child;
 use std::path::PathBuf;
-// use tokio::process::Command;
-
-use petgraph::dot::Dot;
 
 use yamake::model as M;
 
-// .c source file
 use yamake::rules::tex_rules::pdf_file::Pdffile;
 use yamake::rules::tex_rules::tex_file::Texfile;
-// .h source file
 
 /// arguments for make
 #[derive(Debug, FromArgs)]
@@ -49,12 +42,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut g = M::G::new(srcdir.clone(), sandbox.clone())?;
 
-    // ANCHOR_END: instanciate
-
     // don't use the srcdir ! we take the header files from the sandbox
     // take everything from sandbox, there might be generated files
 
-    // ANCHOR: add_nodes
     for f in vec![
         "project_latex/main.tex",
         "project_latex/data.tex",
@@ -71,9 +61,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         flags,
     )?)?;
 
-    // ANCHOR_END: add_nodes
-
-    // ANCHOR: add_edges
     g.add_edge(
         "project_latex/main.pdf".into(),
         "project_latex/main.tex".into(),
@@ -81,24 +68,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ANCHOR_END: add_edges
 
-    // ANCHOR: dot
-    let basic_dot = Dot::new(&g.g);
-    let mut pdot = sandbox.clone();
-    pdot.push("before-scan.dot");
-    std::fs::write(pdot, format!("{:?}", basic_dot))?;
-    // ANCHOR_END: dot
-
-    // ANCHOR: scan
-    g.scan().await?;
-
-    let basic_dot = Dot::new(&g.g);
-    let mut pdot = sandbox.clone();
-    pdot.push("after-scan.dot");
-    std::fs::write(pdot, format!("{:?}", basic_dot))?;
-
-    // ANCHOR_END: scan
-
-    // ANCHOR: make
     match g.make(cli.force, cli.nb_workers).await {
         Ok(ret) => {
             println!("success : {}", ret.success);
@@ -107,11 +76,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             //     println!("node {:?} : {:?}", k, v);
             // }
         }
-
         Err(e) => println!("{}", e.to_string()),
     };
-    // ANCHOR_END: make
 
-    // write_current_hash(&g)?;
     Ok(())
 }

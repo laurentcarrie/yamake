@@ -194,7 +194,7 @@ impl G {
     //     let n = crate::run::mount(self)?;
     //     Ok(n)
     // }
-    pub async fn scan(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) async fn scan(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // crate::run::make(self, true, 4, ETraverse::Scan).await?;
         crate::run::scan(self).await?;
         Ok(())

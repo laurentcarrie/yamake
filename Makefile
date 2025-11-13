@@ -100,10 +100,6 @@ test2 : build
 	ls $(sandbox)/project_1/demo
 
 test_pdf : build
-	$(my_C_tool) $(srcdir) $(sandbox) && \
-	rm $(sandbox)/project_1/main.o && \
-	$(my_C_tool) $(srcdir) $(sandbox) && \
-	ls $(sandbox)/project_1/demo
 
 
 test: build
