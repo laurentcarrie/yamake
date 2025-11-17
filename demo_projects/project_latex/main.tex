@@ -5,10 +5,15 @@
 \usepackage{tikz}
 \usepackage{fontspec}
 \usepackage{etoolbox}
-
+\usepackage[left=1cm,right=1cm,top=1cm,bottom=2cm]{geometry}
+\usepackage[utf8]{inputenc}
 \usepackage{expl3}
 \usepackage{tikz}
 \usetikzlibrary{calc}
+
+\newcommand{\songly}[1]{ %
+	\subimport{#1.output}{#1}
+}
 
 \title{a demo document}
 \author{yamake}
@@ -29,6 +34,10 @@ after data
 \input{projectile.tikz}
 
 
+\newpage
+
+
+\songly{solo}
 
 
 \end{document}

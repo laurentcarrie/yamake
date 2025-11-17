@@ -82,7 +82,7 @@ run : build ## use our demo C tool, to compile our demo C project
 runPdf : build ## use our demo Latex tool, to compile our demo Latex to Pdf
 	@mkdir -p $(sandbox)
 	@printf "\n$(White)$(On_Blue)run yamake tool to build the Pdf doc generator$(Color_Off)\n"
-	$(my_Pdf_tool) $(srcdir) $(sandbox)
+	$(my_Pdf_tool) --nb-workers 1 $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)run the tool to build the pdf$(Color_Off)\n"
 	ls -l $(sandbox)/project_latex/*.pdf
 	@printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n"

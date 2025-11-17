@@ -1,43 +1,42 @@
-use crate::helpers::relpath::relpath as get_relpath;
+use crate::helpers::relpath::relpath;
 use regex::Regex;
 use std::path::PathBuf;
 
-// ANCHOR: tex_file_scan
-pub(crate) fn tex_file_scan(
-    srcdir: PathBuf,
+pub(crate) fn ly_file_scan(
+    sandbox: PathBuf,
     target: PathBuf,
     include_paths: Vec<PathBuf>,
 ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
-    log::info!("scan {:?} ; {:?}", target, include_paths);
-    let mut src_target = srcdir.clone();
+    log::info!("scan {:?}", target);
+    let mut src_target = sandbox.clone();
     src_target.push(target);
     if !src_target.exists() {
         return Err(format!("cannot scan non existing file : {:?}", src_target).into());
     }
     let data = std::fs::read_to_string(src_target)?;
     // let re = Regex::new(r###" *\#include *"(?<name>\w+)" *"###)?;
-    let re = Regex::new(r###"input *\{ *(?<f>.*) *\}.*"###)?;
+    let re = Regex::new(r###"input *"(?<f>.*)".*"###)?;
 
     let mut ret: Vec<PathBuf> = vec![];
 
     for caps in re.captures_iter(data.as_str()) {
         log::info!("{:?}", caps);
         log::info!("scan ==> {:?}", caps.name("f"));
-        let relpath = caps.name("f").ok_or("huh ? in scan")?.as_str();
-        log::info!("found rel path {}", relpath);
+        let relpathx = caps.name("f").ok_or("huh ? in scan")?.as_str();
+        log::info!("found rel path {}", relpathx);
         'outer: loop {
             for i in &include_paths {
                 // let mut scanned = srcdir.clone();
                 let mut scanned = i.clone();
-                scanned.push(PathBuf::from(relpath));
+                scanned.push(PathBuf::from(relpathx));
                 log::info!(" try in include path : {:?}", scanned);
                 if scanned.exists() {
-                    log::info!("found ! : {:?} ; {:?}", scanned, relpath);
-                    ret.push(relpath.into());
-                    let x = get_relpath(srcdir.clone(), scanned.clone())?;
+                    log::info!("found ! : {:?}", scanned);
+                    let x = relpath(sandbox.clone(), scanned.clone())?;
+                    ret.push(relpathx.into());
 
                     // recursive scan
-                    let others = tex_file_scan(srcdir.clone(), scanned, include_paths.clone())?;
+                    let others = ly_file_scan(sandbox.clone(), scanned, include_paths.clone())?;
                     ret.extend(others);
 
                     break 'outer;
@@ -46,7 +45,7 @@ pub(crate) fn tex_file_scan(
 
             log::warn!(
                 "could not find scanned dep in any include path {:?}",
-                relpath
+                relpathx
             );
             break 'outer;
         }
@@ -54,4 +53,3 @@ pub(crate) fn tex_file_scan(
 
     Ok(ret)
 }
-// ANCHOR_END: tex_file_scan

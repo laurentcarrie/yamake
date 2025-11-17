@@ -23,6 +23,7 @@ pub(crate) mod test_c;
 pub(crate) mod test_latex;
 
 pub mod error;
+pub mod helpers;
 
 // pub fn add(left: u64, right: u64) -> u64 {
 //     left + right

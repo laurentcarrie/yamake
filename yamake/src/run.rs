@@ -500,7 +500,7 @@ pub(crate) async fn make(
             pub stdout: String,
             pub stderr: String,
             pub status: String,
-            pub explicit_preds: Vec<String>,
+            pub explicit_deps: Vec<String>,
             pub scanned_deps: Vec<String>,
         }
 
@@ -539,7 +539,7 @@ pub(crate) async fn make(
                 .expect("target path")
                 .to_string()
                 + "-stderr.log";
-            let mut explicit_preds: Vec<String> = vec![];
+            let mut explicit_deps: Vec<String> = vec![];
             let mut scanned_deps: Vec<String> = vec![];
 
             for e in g.g.edges_directed(*ni, Incoming) {
@@ -555,7 +555,7 @@ pub(crate) async fn make(
                     .expect("target path")
                     .into();
                 match e.weight().kind {
-                    M::EKind::Explicit => explicit_preds.push(p),
+                    M::EKind::Explicit => explicit_deps.push(p),
                     M::EKind::Scanned => scanned_deps.push(p),
                 }
                 // unimplemented!();
@@ -566,7 +566,7 @@ pub(crate) async fn make(
                 stdout: stdout,
                 stderr: stderr,
                 status: bt.to_string(),
-                explicit_preds: explicit_preds,
+                explicit_deps: explicit_deps,
                 scanned_deps: scanned_deps,
             };
             items.push(item);
@@ -672,7 +672,7 @@ pub async fn scan(g: &mut M::G) -> Result<(), Box<dyn std::error::Error>> {
                     edges_to_add.push((*ni_dep, ni));
                 }
                 Err(_) => {
-                    log::warn!("could resolve dep {p:?}");
+                    log::warn!("could not resolve dep {p:?}");
                     // if a scanned dependency does not exist, then it will not be copied to the sandbox and the build will fail
                 }
             }

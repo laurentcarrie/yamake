@@ -2,6 +2,8 @@ use argh::FromArgs;
 use log;
 use simple_logging;
 use std::path::PathBuf;
+use yamake::rules::lilypond_rules::ly_file::Lyfile;
+use yamake::rules::lilypond_rules::lytex_file::Lyoutputfile;
 
 use yamake::model as M;
 
@@ -53,7 +55,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         g.add_node(Texfile::new(f.into())?)?;
     }
 
-    let include_paths = vec![sandbox.clone()];
+    g.add_node(Lyfile::new("project_latex/solo.ly".into())?)?;
+    g.add_node(Lyoutputfile::new(
+        "project_latex/solo.output/solo.tex".into(),
+    )?)?;
+
+    let mut p = sandbox.clone();
+    p.push("project_latex");
+    let include_paths = vec![p];
     let flags = vec![];
     g.add_node(Pdffile::new(
         "project_latex/main.pdf".into(),
@@ -62,8 +71,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?)?;
 
     g.add_edge(
+        "project_latex/solo.output/solo.tex".into(),
+        "project_latex/solo.ly".into(),
+    )?;
+
+    g.add_edge(
         "project_latex/main.pdf".into(),
         "project_latex/main.tex".into(),
+    )?;
+
+    g.add_edge(
+        "project_latex/main.pdf".into(),
+        "project_latex/solo.output/solo.tex".into(),
     )?;
 
     // ANCHOR_END: add_edges
