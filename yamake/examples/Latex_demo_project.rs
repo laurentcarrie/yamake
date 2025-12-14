@@ -1,11 +1,11 @@
 use argh::FromArgs;
 use log;
-use simple_logging;
 use std::path::PathBuf;
-use yamake::rules::lilypond_rules::ly_file::Lyfile;
-use yamake::rules::lilypond_rules::lytex_file::Lyoutputfile;
+use yamake::helpers::log::setup_logger;
 
 use yamake::model as M;
+use yamake::rules::lilypond_rules::ly_file::Lyfile;
+use yamake::rules::lilypond_rules::lytex_file::Lyoutputfile;
 
 use yamake::rules::tex_rules::pdf_file::Pdffile;
 use yamake::rules::tex_rules::tex_file::Texfile;
@@ -29,9 +29,13 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    simple_logging::log_to_file("make.log", log::LevelFilter::Info)?;
+    setup_logger()?;
 
     // ANCHOR: instanciate
+
+    log::info!("Latex demo project");
+
+    // process::exit(1);
 
     let cli: Cli = argh::from_env();
 

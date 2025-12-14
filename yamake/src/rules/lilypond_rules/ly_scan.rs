@@ -1,4 +1,3 @@
-use crate::helpers::relpath::relpath;
 use regex::Regex;
 use std::path::PathBuf;
 
@@ -32,7 +31,6 @@ pub(crate) fn ly_file_scan(
                 log::info!(" try in include path : {:?}", scanned);
                 if scanned.exists() {
                     log::info!("found ! : {:?}", scanned);
-                    let x = relpath(sandbox.clone(), scanned.clone())?;
                     ret.push(relpathx.into());
 
                     // recursive scan

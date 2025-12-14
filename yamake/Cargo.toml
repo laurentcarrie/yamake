@@ -11,10 +11,15 @@ readme="../README.md"
 
 [dependencies]
 argh = "0.1.13"
+chrono = "0.4.42"
 colored_text = "0.3.0"
+env_logger = "0.11.8"
+fern = "0.7.1"
 fix_fn = "1.0.2"
+flexi_logger = "0.31.7"
 futures = "0.3.31"
 hex = "0.4.3"
+humantime = "2.3.0"
 indicatif = "0.18.0"
 log = "0.4.27"
 markdown-heading-id = "0.1.0"
@@ -29,6 +34,7 @@ sha2 = "0.10.9"
 simple-logging = "2.0.2"
 simple-mermaid = "0.2.0"
 simple_logger = "5.0.0"
+simplelog = "0.12.2"
 tempdir = "0.3.7"
 tokio = { version = "1.46.1", features = ["full"] }
 walkdir = "2.5.0"
@@ -39,3 +45,6 @@ path="examples/C_demo_project.rs"
 
 [[examples]]
 path="examples/Latex_demo_project.rs"
+
+[[examples]]
+path="examples/test_log.rs"

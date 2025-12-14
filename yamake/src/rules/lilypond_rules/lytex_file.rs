@@ -1,9 +1,8 @@
 use crate::helpers::io::write_string;
 use crate::model as M;
 use crate::rules::lilypond_rules::ly_scan::ly_file_scan;
-use std::fs::File;
 use std::path::PathBuf;
-use std::process::{Command, ExitCode, ExitStatus};
+use std::process::Command;
 
 #[derive(Debug, Clone)]
 pub struct Lyoutputfile {
@@ -12,6 +11,7 @@ pub struct Lyoutputfile {
 
 impl Lyoutputfile {
     pub fn new(target: PathBuf) -> Result<Lyoutputfile, Box<dyn std::error::Error>> {
+        log::info!("target : {target:?}");
         Ok(Lyoutputfile { target })
     }
 }
@@ -56,6 +56,7 @@ impl M::GNode for Lyoutputfile {
 
         let mut lytexfile = source.clone();
         lytexfile.set_extension("lytex");
+        log::info!("lytexfile : {:?}", &lytexfile);
 
         write_string(
             &lytexfile,
@@ -83,31 +84,48 @@ impl M::GNode for Lyoutputfile {
             .stdout(stdout)
             .stderr(stderr);
         let child = binding;
-        log::info!("{:?}", child);
-        log::info!("{:?}", child.status());
-        match child.status() {
-            Ok(e) => {
-                if e.success() {
+        // log::info!("{:?}", child);
+        // log::info!("{:?}", child.status());
+        let success = match child.status() {
+            Ok(e) => match e.code() {
+                Some(0) => {
+                    log::info!("lilypond-book exited with code 0");
                     true
-                } else {
-                    log::error!("{:?}", e.code());
+                }
+                Some(c) => {
+                    log::error!("lilypond-book exited with code {}", c);
                     false
                 }
-            }
+                None => {
+                    log::error!("lilypond-book exited with no code");
+                    false
+                }
+            },
             Err(e) => {
                 // writeln!(stderr, "{:?}", e).expect("write error");
                 log::error!("{:?}", e);
                 log::error!("{:?}", child);
                 false
             }
-        }
-        // if child.status()?.success() {
-        //     true
-        // } else {
-        //     log::error!("child is : {:?}", &child);
-        //     log::error!("exit : {:?}", child.status());
-        //     false
-        // }
+        };
+        // we want the file to be created only on success, lilypond-book creates a lot of files we want to clean that
+        if !success {
+            if self.target().exists() {
+                std::fs::remove_file(self.target()).expect("remove target on failure");
+            }
+            std::fs::remove_file(lytexfile).expect("remove target on failure");
+            let mut lock = outputdir.clone();
+            lock.push("lock");
+            if lock.exists() {
+                std::fs::remove_file(lock).expect("remove lock on failure");
+            }
+            let mut fs = outputdir.clone();
+            fs.push("df");
+            if fs.exists() {
+                std::fs::remove_dir_all(fs).expect("remove fs on failure");
+            }
+        };
+        success
     }
 
     // ANCHOR: scan

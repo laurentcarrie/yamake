@@ -1,4 +1,4 @@
-.PHONY: run build doc png test1 test2 tests help json json-errors runPdf
+.PHONY: run build doc png test1 test2 tests help json json-errors runPdf doc-serve
 .DEFAULT: help
 
 
@@ -150,3 +150,8 @@ show-errors: ## use make-report.json to find errors and print relevant logs
 	echo "\n$(White)$(On_Blue)end show-errors$(Color_Off)\n"
 
 # ANCHOR_END: json-errors
+
+
+doc-serve: ## run mdbook and serve
+	cd doc && mdbook serve
+

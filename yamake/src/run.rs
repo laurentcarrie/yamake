@@ -52,6 +52,7 @@ pub(crate) fn mount(g: &M::G) -> Result<u32, Box<dyn std::error::Error>> {
                 // """###,
                 //     n.target().display().hex("#FF1493").on_hex("#F0FFFF").bold(),
                 // );
+                log::error!("target_in_srcdir {:?} does not exist", target_in_srcdir);
                 return Err(E::CouldNotMountFileError::new(n.target()).into());
             }
             let mut target_in_sandbox = g.sandbox.clone();
@@ -96,9 +97,8 @@ pub(crate) async fn make(
         .unwrap(),
     );
 
-    let _count = mount(g)?;
-    // println!("{count} nodes are mounted ; {} in total", g.g.node_count());
-
+    let count = mount(g)?;
+    log::info!("{count} nodes are mounted ; {} in total", g.g.node_count());
     g.scan().await?;
     compute_needs_rebuild(g)?;
 
@@ -314,6 +314,7 @@ pub(crate) async fn make(
                                 Ok(p)
                             };
                             let stdout: PathBuf = stdout?;
+                            log::info!("stdout is {:?}", stdout);
 
                             let stderr: Result<_, Box<dyn std::error::Error>> = {
                                 let mut p = logpath.clone();
@@ -332,6 +333,7 @@ pub(crate) async fn make(
                                 let old_digest =
                                     target_hash::get_hash_of_node(sandbox.clone(), node.target())
                                         .unwrap_or(None);
+                                log::info!("stdout is {:?}", stdout);
                                 let stdout = std::fs::File::create(stdout).expect("create stdout");
                                 let stderr = std::fs::File::create(stderr).expect("create stderr");
                                 let success = node.build(sandbox.clone(), sources, stdout, stderr);

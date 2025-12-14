@@ -22,6 +22,8 @@ use yamake::rules::c_rules::o_file::Ofile;
 // executeble built file
 use yamake::rules::c_rules::x_file::Xfile;
 
+use yamake::rules::c_rules;
+
 // granted, we should add .a libraries and .so dynamic link libraries
 // ANCHOR_END: use_existing_rules
 
@@ -77,6 +79,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for f in vec!["project_1/add.h", "project_1/wrapper.h"] {
         g.add_node(Hfile::new(f.into())?)?;
     }
+
+    g.add_node(c_rules::yml_language::F::new(
+        "project_1/greetings.yml".into(),
+    )?)?;
 
     let include_paths = vec![sandbox.clone()];
     let compile_options = vec!["-Wall".into(), "-O2".into()];

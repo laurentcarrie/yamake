@@ -36,10 +36,19 @@ impl M::GNode for Pdffile {
         stdout: std::fs::File,
         stderr: std::fs::File,
     ) -> bool {
+        log::info!("build pdffile {:?}", self.target());
         // sources has both sources and scanned deps, so one .c file and all the .h scanned deps
         let sources = sources
             .iter()
             .filter(|x| x.tag == "tex file")
+            .filter(|x| {
+                x.path
+                    .file_name()
+                    .expect("file name")
+                    .to_str()
+                    .expect("file name")
+                    == String::from("main.tex")
+            })
             .collect::<Vec<_>>();
         if sources.len() != 1 {
             log::error!(
@@ -92,29 +101,31 @@ impl M::GNode for Pdffile {
         srcdir: PathBuf,
         sources: Vec<M::PathWithTag>,
     ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
-        // sanity check, the rule is .o : .c
-        // if sources.len() != 1 {
-        //     for s in sources {
-        //         log::info!("source : {:?}", s);
-        //     }
-        //     log::error!("o_node should only have one source");
-
-        //     return Err("o_node should only have one source".into());
-        // }
         let sources = sources
             .iter()
             .filter(|x| x.tag == "tex file")
+            .map(|x| x.path.clone())
             .collect::<Vec<_>>();
-        if sources.len() != 1 {
-            log::error!(
-                "bad graph construct for node {:?}, sources.len()={}",
-                self,
-                sources.len()
-            );
-            return Err(format!("bad graph construct for node {:?}", self).into());
+        let mut deps: Vec<PathBuf> = vec![];
+        for source in &sources {
+            let mut this_deps =
+                tex_file_scan(srcdir.clone(), source.clone(), self.include_paths.clone())?;
+            deps.append(&mut this_deps.0);
+            for d in this_deps.1 {
+                let mut found = false;
+                for s in &sources {
+                    if &d == s {
+                        found = true;
+                        break;
+                    }
+                }
+                if !found {
+                    log::info!("scanned tex dep not found : {:?}", d);
+                    // return Err(format!("scanned tex dep not found : {:?}", d).into());
+                }
+            }
         }
-        let source = sources.get(0).expect("one node").path.clone();
-        let deps = tex_file_scan(srcdir, source.clone(), self.include_paths.clone())?;
+
         Ok(deps)
     }
     // ANCHOR_END: scan
