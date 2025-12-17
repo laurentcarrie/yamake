@@ -35,13 +35,12 @@ impl M::GNode for N {
             }
         }
 
-        let mut binding = Command::new("gcc");
+        let mut binding = Command::new("ar");
         let binding = binding
-            .args(filtered_sources)
-            // .arg("-v")
-            .arg("-o")
-            .arg(self.target())
+            .arg("-t")
             .args(self.flags.clone())
+            .arg(self.target())
+            .args(filtered_sources)
             .current_dir(&sandbox)
             .stdout(stdout)
             .stdout(stderr);
@@ -62,7 +61,7 @@ impl M::GNode for N {
         PathBuf::from(self.target.clone())
     }
     fn tag(&self) -> String {
-        "x file".to_string()
+        "a file".to_string()
     }
     fn id(&self) -> String {
         self.target().to_str().expect("target to str").to_string()

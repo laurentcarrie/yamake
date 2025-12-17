@@ -1,4 +1,5 @@
-.PHONY: run build doc png test1 test2 tests help json json-errors runPdf doc-serve
+.PHONY: run build doc png test1 test2 tests help json json-errors runPdf doc-serve \
+demo-cluster
 .DEFAULT: help
 
 
@@ -7,6 +8,7 @@ include scripts/colorprint
 sandbox:=sandbox
 srcdir:=demo_projects
 my_C_tool:=yamake/target/debug/examples/C_demo_project
+expand_demo:=yamake/target/debug/examples/expand_demo
 my_Pdf_tool:=yamake/target/debug/examples/Latex_demo_project
 
 
@@ -113,11 +115,8 @@ png : run
 
 build: ## build our demo tool, written in rust, using yamake. This demo tool is a builder for our demo project, a C project in $(srcdir) directory
 	@printf "\n$(White)$(On_Blue)build the demo$(Color_Off)\n"
-	( cd yamake ; cargo fmt && 	cargo build --example C_demo_project )
-	@printf "finished building $(Red)$(my_C_tool)$(Color_Off)\n"
-	( cd yamake ; cargo fmt && 	cargo build --example Latex_demo_project )
-	@printf "finished building $(Red)$(my_Pdf_tool)$(Color_Off)\n"
-
+	( cd yamake ; cargo fmt && 	cargo build --examples  )
+	@printf "finished building\n"
 
 clean:
 	rm -rf $(sandbox)
@@ -155,3 +154,14 @@ show-errors: ## use make-report.json to find errors and print relevant logs
 doc-serve: ## run mdbook and serve
 	cd doc && mdbook serve
 
+
+demo-expand: build ## demo : demo for a cluster of generated files
+	@rm -rf $(sandbox)
+	@mkdir -p $(sandbox)
+	@git checkout HEAD -- demo_projects
+	@printf "\n$(White)$(On_Blue)run the builder$(Color_Off)\n" && \
+	$(expand_demo) $(srcdir) $(sandbox) && \
+	printf "\n$(White)$(On_Blue)run the builded demo program$(Color_Off)\n" && \
+	./$(sandbox)/demo_expand/demo && \
+	printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n" && \
+	cp $(sandbox)/make-report.json doc/src/make-reports/run_1.json

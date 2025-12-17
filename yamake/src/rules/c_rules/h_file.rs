@@ -5,17 +5,15 @@ use crate::model::{self as M};
 // use std::sync::Arc;
 
 #[derive(Debug, Clone)]
-pub struct Hfile {
+pub struct N {
     target: PathBuf,
 }
 
-impl Hfile {
-    pub fn new(target: PathBuf) -> Result<Hfile, Box<dyn std::error::Error>> {
-        Ok(Hfile { target })
-    }
+pub fn new(target: PathBuf) -> Result<N, Box<dyn std::error::Error>> {
+    Ok(N { target })
 }
 
-impl M::GNode for Hfile {
+impl M::GNode for N {
     fn target(&self) -> PathBuf {
         PathBuf::from(self.target.clone())
     }

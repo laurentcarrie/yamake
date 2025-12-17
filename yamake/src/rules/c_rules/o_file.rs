@@ -6,7 +6,7 @@ use std::process::Command;
 // ANCHOR: structofile
 
 #[derive(Debug, Clone)]
-pub struct Ofile {
+pub struct N {
     target: PathBuf,
     include_paths: Vec<PathBuf>,
     flags: Vec<String>,
@@ -14,21 +14,19 @@ pub struct Ofile {
 
 // ANCHOR_END: structofile
 
-impl Ofile {
-    pub fn new(
-        target: PathBuf,
-        include_paths: Vec<PathBuf>,
-        flags: Vec<String>,
-    ) -> Result<Ofile, Box<dyn std::error::Error>> {
-        Ok(Ofile {
-            target,
-            include_paths,
-            flags,
-        })
-    }
+pub fn new(
+    target: PathBuf,
+    include_paths: Vec<PathBuf>,
+    flags: Vec<String>,
+) -> Result<N, Box<dyn std::error::Error>> {
+    Ok(N {
+        target,
+        include_paths,
+        flags,
+    })
 }
 
-impl M::GNode for Ofile {
+impl M::GNode for N {
     fn build(
         &self,
         sandbox: PathBuf,

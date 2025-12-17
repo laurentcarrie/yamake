@@ -82,6 +82,15 @@ pub(crate) async fn make(
     _force_rebuild: bool,
     nb_workers: u32,
 ) -> Result<M::MakeReturn, Box<dyn std::error::Error>> {
+    let ret = make1(g, _force_rebuild, nb_workers).await?;
+    Ok(ret)
+}
+
+pub(crate) async fn make1(
+    g: &mut M::G,
+    _force_rebuild: bool,
+    nb_workers: u32,
+) -> Result<M::MakeReturn, Box<dyn std::error::Error>> {
     // for ni in g.g.node_indices() {
     //     let n = g.g.node_weight(ni).ok_or("get node")? ;
     //     g.status.insert(n.id(),M::EStatus::Initial) ;

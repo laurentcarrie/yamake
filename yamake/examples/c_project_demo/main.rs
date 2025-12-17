@@ -13,18 +13,7 @@ use yamake::model as M;
 // ANCHOR_END: use
 
 // ANCHOR: use_existing_rules
-// .c source file
-use yamake::rules::c_rules::c_file::Cfile;
-// .h source file
-use yamake::rules::c_rules::h_file::Hfile;
-// .o built object file
-use yamake::rules::c_rules::o_file::Ofile;
-// executeble built file
-use yamake::rules::c_rules::x_file::Xfile;
-
-use yamake::rules::c_rules;
-
-// granted, we should add .a libraries and .so dynamic link libraries
+use yamake::rules::c_rules as R;
 // ANCHOR_END: use_existing_rules
 
 pub struct CSource;
@@ -74,20 +63,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ANCHOR: add_nodes
     for f in vec!["project_1/main.c", "project_1/add.c"] {
-        g.add_node(Cfile::new(f.into())?)?;
+        g.add_node(R::c_file::new(f.into())?)?;
     }
     for f in vec!["project_1/add.h", "project_1/wrapper.h"] {
-        g.add_node(Hfile::new(f.into())?)?;
+        g.add_node(R::h_file::new(f.into())?)?;
     }
-
-    g.add_node(c_rules::yml_language::F::new(
-        "project_1/greetings.yml".into(),
-    )?)?;
 
     let include_paths = vec![sandbox.clone()];
     let compile_options = vec!["-Wall".into(), "-O2".into()];
     for f in vec!["project_1/main.o", "project_1/add.o"] {
-        g.add_node(Ofile::new(
+        g.add_node(R::o_file::new(
             f.into(),
             include_paths.clone(),
             compile_options.clone(),
@@ -95,7 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let link_flags = vec![];
-    g.add_node(Xfile::new("project_1/demo".into(), link_flags)?)?;
+    g.add_node(R::x_file::new("project_1/demo".into(), link_flags)?)?;
 
     // ANCHOR_END: add_nodes
 

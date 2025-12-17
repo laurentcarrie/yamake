@@ -16,3 +16,5 @@
     - [id](./addrule-id.md)
     - [tag](./addrule-tag.md)
     - [scan](./addrule-scan.md)
+- [Generared Nodes](./generated-nodes.md)
+    - [steps](./generated-nodes-steps.md)

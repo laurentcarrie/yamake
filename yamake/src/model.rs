@@ -51,6 +51,16 @@ pub trait GNode: Send + Sync {
     }
     // ANCHOR_END:scan
 
+    // ANCHOR: expand
+    fn expand(
+        &self,
+        _srcdir: PathBuf,
+        _sources: Vec<PathWithTag>,
+    ) -> Result<Vec<Box<dyn GNode>>, Box<dyn std::error::Error>> {
+        Ok(vec![])
+    }
+    // ANCHOR_END:expand
+
     // ANCHOR: target
     // the target path of a node, relative to the sandbox path
     fn target(&self) -> PathBuf;
