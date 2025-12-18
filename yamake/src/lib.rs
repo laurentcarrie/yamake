@@ -15,7 +15,11 @@ pub mod model;
 /// use it as doc
 pub mod rules;
 
-pub(crate) mod run;
+pub(crate) mod build;
+pub(crate) mod expand;
+pub(crate) mod make;
+pub(crate) mod mount;
+pub(crate) mod scan;
 
 pub(crate) mod target_hash;
 

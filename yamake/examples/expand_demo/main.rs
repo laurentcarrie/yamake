@@ -1,9 +1,9 @@
 use argh::FromArgs;
-use log;
 // use petgraph::Direction::Incoming;
-use simple_logging;
+use yamake::helpers::log::setup_logger;
 // use tokio::process::Child;
 use std::path::PathBuf;
+use std::process::exit;
 // use tokio::process::Command;
 
 use petgraph::dot::Dot;
@@ -38,8 +38,7 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    simple_logging::log_to_file("make.log", log::LevelFilter::Info)?;
-
+    setup_logger()?;
     // ANCHOR: instanciate
 
     let cli: Cli = argh::from_env();
@@ -72,6 +71,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     g.add_node(R::x_file::new("demo_expand/demo".into(), link_flags)?)?;
 
     g.add_edge("demo_expand/main.o".into(), "demo_expand/main.c".into())?;
+    g.add_edge(
+        "demo_expand/liblanguages.a".into(),
+        "demo_expand/greetings.yml".into(),
+    )?;
+    g.add_edge(
+        "demo_expand/demo".into(),
+        "demo_expand/liblanguages.a".into(),
+    )?;
+    g.add_edge("demo_expand/demo".into(), "demo_expand/main.o".into())?;
 
     let basic_dot = Dot::new(&g.g);
     let mut pdot = sandbox.clone();
@@ -81,6 +89,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match g.make(cli.force, cli.nb_workers).await {
         Ok(ret) => {
             println!("success : {}", ret.success);
+            if !ret.success {
+                exit(1);
+            }
             // you can walk the graph and print status of each node
             // for (k, v) in ret.nt {
             //     println!("node {:?} : {:?}", k, v);

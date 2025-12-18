@@ -199,22 +199,33 @@ impl G {
         }
         true
     }
-    // pub fn mount(&mut self) -> Result<u32, Box<dyn std::error::Error>> {
-    //     // crate::run::make(self, true, 4, ETraverse::Scan).await?;
-    //     let n = crate::run::mount(self)?;
-    //     Ok(n)
-    // }
-    pub(crate) async fn scan(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn mount(&mut self) -> Result<u32, Box<dyn std::error::Error>> {
         // crate::run::make(self, true, 4, ETraverse::Scan).await?;
-        crate::run::scan(self).await?;
-        Ok(())
+        let n = crate::mount::mount(self)?;
+        Ok(n)
     }
+    pub(crate) async fn expand(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
+        // crate::run::make(self, true, 4, ETraverse::Scan).await?;
+        let ret = crate::expand::expand(self).await?;
+        Ok(ret)
+    }
+    pub(crate) async fn scan(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
+        // crate::run::make(self, true, 4, ETraverse::Scan).await?;
+        let changed = crate::scan::scan(self).await?;
+        Ok(changed)
+    }
+    pub(crate) async fn build(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
+        // crate::run::make(self, true, 4, ETraverse::Scan).await?;
+        let changed = crate::build::build(self).await?;
+        Ok(changed)
+    }
+
     pub async fn make(
         &mut self,
         force_rebuild: bool,
         nb_workers: u32,
     ) -> Result<MakeReturn, Box<dyn std::error::Error>> {
-        let ret = crate::run::make(self, force_rebuild, nb_workers).await?;
+        let ret = crate::make::make(self, force_rebuild, nb_workers).await?;
         Ok(ret)
     }
 }

@@ -7,7 +7,7 @@ include scripts/colorprint
 
 sandbox:=sandbox
 srcdir:=demo_projects
-my_C_tool:=yamake/target/debug/examples/C_demo_project
+my_C_tool:=yamake/target/debug/examples/c_project_demo
 expand_demo:=yamake/target/debug/examples/expand_demo
 my_Pdf_tool:=yamake/target/debug/examples/Latex_demo_project
 
@@ -105,6 +105,7 @@ test_pdf : build
 
 
 test: build
+	echo "" > yamake.log
 	cd yamake && cargo test
 
 png : run

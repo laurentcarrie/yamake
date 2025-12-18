@@ -2,6 +2,7 @@ use argh::FromArgs;
 use log;
 // use petgraph::Direction::Incoming;
 use simple_logging;
+use yamake::helpers::log::setup_logger;
 // use tokio::process::Child;
 use std::path::PathBuf;
 // use tokio::process::Command;
@@ -41,7 +42,7 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    simple_logging::log_to_file("make.log", log::LevelFilter::Info)?;
+    setup_logger()?;
 
     // ANCHOR: instanciate
 
