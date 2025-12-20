@@ -5,7 +5,7 @@ use crate::model as M;
 
 pub(crate) async fn make(
     g: &mut M::G,
-    _force_rebuild: bool,
+    force_rebuild: bool,
     nb_workers: u32,
 ) -> Result<M::MakeReturn, Box<dyn std::error::Error>> {
     log::info!("make called with nb_workers={}", nb_workers);
@@ -25,7 +25,7 @@ pub(crate) async fn make(
             log::info!("scan is done");
             break 'outer;
         }
-        let ret = g.build().await?;
+        let ret = g.build(force_rebuild, nb_workers).await?;
         break;
     }
     let ret = M::MakeReturn {

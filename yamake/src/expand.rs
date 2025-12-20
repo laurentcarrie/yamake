@@ -15,6 +15,6 @@ use crate::model as M;
 use crate::model::PathWithTag;
 // use tokio::sync::mpsc::Receiver;
 
-pub async fn expand(g: &mut M::G) -> Result<bool, Box<dyn std::error::Error>> {
+pub async fn expand(_g: &mut M::G) -> Result<bool, Box<dyn std::error::Error>> {
     Ok(false)
 }

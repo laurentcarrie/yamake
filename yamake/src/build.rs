@@ -1,20 +1,25 @@
 // use crate::error as E;
+use crate::mount::mount;
 use colored_text::Colorize;
+use indicatif::{ProgressBar, ProgressStyle};
 use log;
 use petgraph::Direction::Incoming;
 use petgraph::dot::Dot;
-use std::sync::Arc;
-
-use indicatif::{ProgressBar, ProgressStyle};
-
 use petgraph::graph::NodeIndex;
+use petgraph::visit::EdgeRef;
+use serde::Serialize;
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::path::PathBuf;
 use std::result::Result;
+use std::sync::Arc;
 // use std::time::Duration;
-
 use crate::model as M;
 use crate::model::PathWithTag;
-use crate::target_hash::write_current_hash;
+use crate::target_hash;
 // use tokio::sync::mpsc::Receiver;
+use std::sync::mpsc;
+use tokio::task::JoinSet;
 
 pub(crate) async fn build(
     g: &mut M::G,
@@ -39,7 +44,7 @@ pub(crate) async fn build(
     let count = mount(g)?;
     log::info!("{count} nodes are mounted ; {} in total", g.g.node_count());
     g.scan().await?;
-    compute_needs_rebuild(g)?;
+    target_hash::compute_needs_rebuild(g)?;
 
     let (tx, mut rx) = mpsc::channel::<(NodeIndex, M::BuildType)>(1000);
 
@@ -327,7 +332,7 @@ pub(crate) async fn build(
             }
         }
         log::info!("recv");
-        if let Some(li) = rx.recv().await {
+        if let li = rx.recv() {
             running.remove(&li.0);
             let node = g.g.node_weight(li.0).ok_or("huh, no node?")?;
             let bt = li.1;
@@ -414,7 +419,7 @@ pub(crate) async fn build(
     log::info!("got out of outer loop");
     pb.println("writing new hashes");
     // compute_needs_rebuild(&g) ;
-    write_current_hash(&g)?;
+    target_hash::write_current_hash(&g)?;
 
     pb.println(" --- SUMMARY --- ");
 

@@ -2,7 +2,7 @@
 use colored_text::Colorize;
 use log;
 use petgraph::Direction::Incoming;
-use petgraph::dot::Dot;
+// use petgraph::dot::Dot;
 use std::sync::Arc;
 
 use indicatif::{ProgressBar, ProgressStyle};

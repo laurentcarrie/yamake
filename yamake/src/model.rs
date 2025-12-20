@@ -214,9 +214,13 @@ impl G {
         let changed = crate::scan::scan(self).await?;
         Ok(changed)
     }
-    pub(crate) async fn build(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
+    pub(crate) async fn build(
+        &mut self,
+        force_rebuild: bool,
+        nb_workers: ui8,
+    ) -> Result<MakeReturn, Box<dyn std::error::Error>> {
         // crate::run::make(self, true, 4, ETraverse::Scan).await?;
-        let changed = crate::build::build(self).await?;
+        let changed = crate::build::build(self, force_rebuild, nb_workers).await?;
         Ok(changed)
     }
 
