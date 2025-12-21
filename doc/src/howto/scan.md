@@ -3,7 +3,7 @@
 The scan will add new nodes to the graph :
 
 ```rust
-{{#include ../../../yamake/examples/C_demo_project.rs:scan}}
+{{#include ../../../yamake/examples/c_project_demo/main.rs:scan}}
 ```
 
 after the scan, we will have 3 new edges :

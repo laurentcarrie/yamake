@@ -4,10 +4,7 @@ mod tests {
     // use super::*;
     use crate::error as E;
     use crate::model as M;
-    use crate::rules::c_rules::c_file::Cfile;
-    use crate::rules::c_rules::h_file::Hfile;
-    use crate::rules::c_rules::o_file::Ofile;
-    use crate::rules::c_rules::x_file::Xfile;
+    use crate::rules::c_rules as R;
     // use futures::executor;
     use simple_logging;
     use std::path::PathBuf;
@@ -49,16 +46,16 @@ mod tests {
         let include_paths = vec![sandbox.clone()];
         let compile_flags = vec!["-Wall".into()];
 
-        g.add_node(Cfile::new(PathBuf::from("project_1/main.c"))?)?;
-        g.add_node(Cfile::new(PathBuf::from("project_1/add.c"))?)?;
-        g.add_node(Hfile::new(PathBuf::from("project_1/add.h"))?)?;
-        g.add_node(Hfile::new(PathBuf::from("project_1/wrapper.h"))?)?;
-        g.add_node(Ofile::new(
+        g.add_node(R::c_file::new(PathBuf::from("project_1/main.c"))?)?;
+        g.add_node(R::c_file::new(PathBuf::from("project_1/add.c"))?)?;
+        g.add_node(R::h_file::new(PathBuf::from("project_1/add.h"))?)?;
+        g.add_node(R::h_file::new(PathBuf::from("project_1/wrapper.h"))?)?;
+        g.add_node(R::o_file::new(
             PathBuf::from("project_1/main.o"),
             include_paths.clone(),
             compile_flags.clone(),
         )?)?;
-        g.add_node(Ofile::new(
+        g.add_node(R::o_file::new(
             PathBuf::from("project_1/add.o"),
             include_paths.clone(),
             compile_flags.clone(),
@@ -74,7 +71,7 @@ mod tests {
         )?;
 
         let exe = PathBuf::from("project_1/demo");
-        g.add_node(Xfile::new(exe.clone(), vec!["-lm".into()])?)?;
+        g.add_node(R::x_file::new(exe.clone(), vec!["-lm".into()])?)?;
         g.add_edge(exe.clone(), PathBuf::from("project_1/main.o"))?;
         g.add_edge(exe.clone(), PathBuf::from("project_1/add.o"))?;
         Ok(g)
@@ -152,7 +149,7 @@ mod tests {
         println!("sandbox is {:?}", g.sandbox);
         let ni = g.ni_of_path("project_1/add.o".into())?;
         g.g.remove_node(ni).ok_or("x")?;
-        g.add_node(Cfile::new(PathBuf::from("project_1/add.o"))?)?;
+        g.add_node(R::c_file::new(PathBuf::from("project_1/add.o"))?)?;
 
         let ret = g.make(false, 4).await;
         assert!(ret.is_err_and(|e| e.is::<E::CouldNotMountFileError>()));

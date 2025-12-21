@@ -15,7 +15,7 @@ pub mod model;
 /// use it as doc
 pub mod rules;
 
-pub(crate) mod run;
+pub(crate) mod actions;
 
 pub(crate) mod target_hash;
 

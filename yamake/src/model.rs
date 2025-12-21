@@ -206,7 +206,7 @@ impl G {
     // }
     pub(crate) async fn scan(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // crate::run::make(self, true, 4, ETraverse::Scan).await?;
-        crate::run::scan(self).await?;
+        crate::actions::scan::scan(self).await?;
         Ok(())
     }
     pub async fn make(
@@ -214,7 +214,7 @@ impl G {
         force_rebuild: bool,
         nb_workers: u32,
     ) -> Result<MakeReturn, Box<dyn std::error::Error>> {
-        let ret = crate::run::make(self, force_rebuild, nb_workers).await?;
+        let ret = crate::actions::run::make(self, force_rebuild, nb_workers).await?;
         Ok(ret)
     }
 }
