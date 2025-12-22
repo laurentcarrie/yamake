@@ -1,6 +1,0 @@
-
-
-
-flowchart TD
-
-    Start --> Stop

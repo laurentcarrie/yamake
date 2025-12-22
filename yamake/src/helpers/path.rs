@@ -62,7 +62,7 @@ mod tests {
 
         let root = PathBuf::from("a");
         let f = PathBuf::from("/f/g");
-        let r = relpath(root, f).unwrap();
+        let _r = relpath(root, f).unwrap();
 
         ()
     }

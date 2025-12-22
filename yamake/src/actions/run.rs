@@ -1,12 +1,12 @@
-use crate::error as E;
+// use crate::error as E;
 use colored_text::Colorize;
 use log;
 use petgraph::Direction::Incoming;
-use petgraph::dot::Dot;
+// use petgraph::dot::Dot;
 use petgraph::visit::EdgeRef;
 use serde::Serialize;
 use std::path::PathBuf;
-use std::sync::Arc;
+// use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use indicatif::{ProgressBar, ProgressStyle};
@@ -17,9 +17,8 @@ use std::result::Result;
 // use std::time::Duration;
 use crate::actions::mount::mount;
 
-use crate::model::PathWithTag;
-use crate::target_hash::{compute_needs_rebuild, write_current_hash};
-use crate::{model as M, target_hash};
+use crate::model as M;
+// use crate::model::PathWithTag;
 // use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 
@@ -55,7 +54,7 @@ pub(crate) async fn make1(
     let count = mount(g)?;
     log::info!("{count} nodes are mounted ; {} in total", g.g.node_count());
     g.scan().await?;
-    compute_needs_rebuild(g)?;
+    crate::actions::target_hash::compute_needs_rebuild(g)?;
 
     let (tx, mut rx) = mpsc::channel::<(NodeIndex, M::BuildType)>(1000);
 
@@ -285,17 +284,21 @@ pub(crate) async fn make1(
                                 logpath.push("log");
                                 std::fs::create_dir_all(&logpath).expect("create logs dir");
 
-                                let old_digest =
-                                    target_hash::get_hash_of_node(sandbox.clone(), node.target())
-                                        .unwrap_or(None);
+                                let old_digest = crate::actions::target_hash::get_hash_of_node(
+                                    sandbox.clone(),
+                                    node.target(),
+                                )
+                                .unwrap_or(None);
                                 log::info!("stdout is {:?}", stdout);
                                 let stdout = std::fs::File::create(stdout).expect("create stdout");
                                 let stderr = std::fs::File::create(stderr).expect("create stderr");
                                 let success = node.build(sandbox.clone(), sources, stdout, stderr);
 
-                                let new_digest =
-                                    target_hash::get_hash_of_node(sandbox.clone(), node.target())
-                                        .unwrap_or(None);
+                                let new_digest = crate::actions::target_hash::get_hash_of_node(
+                                    sandbox.clone(),
+                                    node.target(),
+                                )
+                                .unwrap_or(None);
 
                                 let bt = if success {
                                     // process ran and exited with code 0
@@ -430,7 +433,7 @@ pub(crate) async fn make1(
     log::info!("got out of outer loop");
     pb.println("writing new hashes");
     // compute_needs_rebuild(&g) ;
-    write_current_hash(&g)?;
+    crate::actions::target_hash::write_current_hash(&g)?;
 
     pb.println(" --- SUMMARY --- ");
 

@@ -36,167 +36,118 @@ start --> decision_has_preds
 decision_has_preds{node
 has preds ?}:::choice
 
-decision_source_exists{
-    source
-    exists ?
+decision_file_exists_in_sources{file
+in sources ?}:::choice
+
+decision_digest{
+    compute 
+    digest
 }:::choice
 
-decision_has_preds -- no --> decision_source_exists
+decision_all_preds_ok{
+    all preds
+    ok ?
+}:::choice
 
-decision_source_exists -- yes --> mount
-decision_source_exists -- no --> error_no_source
-mount[
-    mount
-    file
-]:::action
+decision_some_preds_changed{
+    some preds
+    changed ?
+}:::choice
+
+decision_build_success{
+    build
+    success ?
+}:::choice
+
+decision_expand{
+}:::choice
 
 
-error_no_source[
-    No
-    Source
+missing_source[missing
+source]
+
+decision_has_preds -- no --> decision_file_exists_in_sources
+decision_file_exists_in_sources -- yes --> mount:::action
+decision_file_exists_in_sources -- no --> missing_source:::ko
+decision_has_preds -- yes --> decision_all_preds_ok
+
+mount -->  decision_digest
+
+decision_digest -- changed --> expand:::action
+decision_digest -- not changed --> notchanged:::unchanged
+
+notchanged[un
+changed]
+
+
+%%% build branch
+build_skipped[build
+Ancestor Failed]
+
+decision_all_preds_ok -- no -----> build_skipped:::ko
+
+
+decision_all_preds_ok -- yes --> decision_some_preds_changed
+
+build:::action
+
+decision_some_preds_changed -- yes --> build
+decision_some_preds_changed -- no --> notchanged:::unchanged
+
+build --> decision_build_success
+decision_build_success -- yes --> decision_digest
+decision_build_success -- no --> build_failed:::ko
+
+build_failed[Build
+Failed]
+
+
+expand --> decision_expand
+
+decision_expand -- failure --> expand_failure
+expand_failure[
+    expand
+    failure
 ]:::ko
 
-mount --> expand:::action
+decision_expand -- graph changed --> graph_changed:::ko
+graph_changed[
+    graph
+    changed
+]
 
-decision_all_preds_exist{all preds
-exist ?}:::choice
-
-decision_has_preds -- yes --> decision_all_preds_exist
-
-
-decision_all_preds_exist -- yes --> build:::action
-
-decision_all_preds_exist -- no --> error_no_source[
-    missing
-    file
-]:::ko
-
-build --> expand
-
-expand --> final1@{shape: framed-circle}
-error_no_source --> final2@{shape: framed-circle}
+%% decision_expand -- graph unchanged --> notchanged
+decision_expand -- graph unchanged --> changed:::changed
 
 
 classDef ko fill:#f00,color:white,font-weight:bold,stroke-width:2px,stroke:yellow
-classDef ok fill:#0f0,color:black,font-weight:bold,stroke-width:2px,stroke:yellow
+classDef changed fill:#0ff,color:black,font-weight:bold,stroke-width:2px,stroke:yellow
+classDef unchanged fill:#0f0,color:black,font-weight:bold,stroke-width:2px,stroke:yellow
 
-classDef action fill:#dbd7d2,color:black,font-weight:bold,stroke-width:2px,stroke:black,shape: lin-rect
+classDef action fill:#FF8C00,color:black,font-weight:bold,stroke-width:2px,stroke:black,shape:bolt
 classDef choice fill:lavender,color:black,font-weight:bold,stroke-width:2px,stroke:red,shape: circle
 
 
 ```
 
+---
+
+# digest
+
+digest of nodes are stored in a cache file. The first time the tool is ran, the digest is missing. If not, the action of computing the digest allows
+to node to be marked as changed or unchanged since the last run.
 
 ---
 
-## other
+# source node
+[top](#top)
 
-
-```mermaid
-
----
-title: node lifecycle
----
-
-stateDiagram-v2
-
-    state has_preds <<choice>>
-    state source_exists <<choice>>
-    state all_deps_present <<choice>>
-    state build_success <<choice>>
-
-    EvalDigest: digest
-    Error:::ko : Error
-    %%Error2:::ko : Error
-    %%Error3:::ko : Error
-
-    [*] --> has_preds
-    has_preds --> all_deps_present: has predecessors
-    has_preds --> source_exists : no predecessors
-    source_exists --> mount : source file exists
-    source_exists --> Error : no source file
-    %%Error --> [*]
-    mount --> EvalDigest
-    %%EvalDigest --> [*]
-
-    all_deps_present --> Build : all deps present
-    all_deps_present --> Error : some deps are missing 
-
-
-    Build --> build_success
-    build_success --> EvalDigest : build success
-    build_success --> Error : build failure
-    build_success --> BuildSkipped : skipped
-
-    EvalDigest --> done:::ok
-    BuildSkipped --> done:::ok
-
-    %%Error --> [*]
-    %%Error2 --> [*]
-    %%Error3 --> [*]
-
-    done --> [*]
-    Error --> [*]
-
-
-classDef ko fill:#f00,color:white,font-weight:bold,stroke-width:2px,stroke:yellow
-classDef ok fill:#0f0,color:black,font-weight:bold,stroke-width:2px,stroke:yellow
-
-
-
-```
+a source node has no predecessor. It is a file in the source directory, and there is no rule to build it, it is mount, ie copied from source directory to sandbox. When mounted, its digest is compared to the old one.
 
 ---
 
-```mermaid
+# expand
 
----
-title: Make
----
-stateDiagram-v2
-        MountedOk: mounted
-        MountedKo: mounted
-        BuiltOk: built
-        BuiltKo: built
-        %% Missing: not present in sources
+Expanding a node means adding nodes and edges to the build tree.
 
-        [*] --> Mount 
-        [*] --> Built
-        [*] --> generated : expansion
-        BuiltOk:::ok --> BuiltKo
-        BuiltKo --> BuiltOk
-        %% MountedKo --> MountedOk:::ok
-
-        [*] --> Digest
-        [*] --> Scan
-
-        NotModified:::ok not modified
-        Modified:::ko modified
-
-        NeedsRebuild:::ko : needs rebuild
-        UpToDate:::ok : up to date
-
-        state Digest {
-            [*] --> NotModified
-            [*] --> Modified
-            NotModified --> Modified
-            Modified --> NotModified
-        }
-
-        state Scan {
-            [*] --> NeedsRebuild
-            [*] --> UpToDate
-        }
-        
-
-
-
-
-classDef ko fill:#f00,color:white,font-weight:bold,stroke-width:2px,stroke:yellow
-classDef ok fill:#0f0,color:black,font-weight:bold,stroke-width:2px,stroke:yellow
-
-%%class Mounted badBadEvent
-%%class Expanded ok
-
-```
 

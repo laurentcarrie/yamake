@@ -3,58 +3,11 @@
   "sandbox": "/Users/laurent/work/yamake/sandbox",
   "items": [
     {
-      "target": "project_1/add.o",
-      "stdout": "project_1/add.o-stdout.log",
-      "stderr": "project_1/add.o-stderr.log",
-      "status": "Failed",
-      "explicit_preds": [
-        "project_1/add.c"
-      ],
-      "scanned_deps": [
-        "project_1/add.h"
-      ]
-    },
-    {
-      "target": "project_1/add.c",
-      "stdout": "project_1/add.c-stdout.log",
-      "stderr": "project_1/add.c-stderr.log",
-      "status": "Mounted",
-      "explicit_preds": [],
-      "scanned_deps": []
-    },
-    {
-      "target": "project_1/add.h",
-      "stdout": "project_1/add.h-stdout.log",
-      "stderr": "project_1/add.h-stderr.log",
-      "status": "NotReMounted",
-      "explicit_preds": [],
-      "scanned_deps": []
-    },
-    {
-      "target": "project_1/demo",
-      "stdout": "project_1/demo-stdout.log",
-      "stderr": "project_1/demo-stderr.log",
-      "status": "AncestorFailed",
-      "explicit_preds": [
-        "project_1/add.o",
-        "project_1/main.o"
-      ],
-      "scanned_deps": []
-    },
-    {
-      "target": "project_1/wrapper.h",
-      "stdout": "project_1/wrapper.h-stdout.log",
-      "stderr": "project_1/wrapper.h-stderr.log",
-      "status": "NotReMounted",
-      "explicit_preds": [],
-      "scanned_deps": []
-    },
-    {
       "target": "project_1/main.o",
       "stdout": "project_1/main.o-stdout.log",
       "stderr": "project_1/main.o-stderr.log",
       "status": "NotRebuilt",
-      "explicit_preds": [
+      "explicit_deps": [
         "project_1/main.c"
       ],
       "scanned_deps": [
@@ -67,7 +20,54 @@
       "stdout": "project_1/main.c-stdout.log",
       "stderr": "project_1/main.c-stderr.log",
       "status": "NotReMounted",
-      "explicit_preds": [],
+      "explicit_deps": [],
+      "scanned_deps": []
+    },
+    {
+      "target": "project_1/demo",
+      "stdout": "project_1/demo-stdout.log",
+      "stderr": "project_1/demo-stderr.log",
+      "status": "AncestorFailed",
+      "explicit_deps": [
+        "project_1/add.o",
+        "project_1/main.o"
+      ],
+      "scanned_deps": []
+    },
+    {
+      "target": "project_1/add.h",
+      "stdout": "project_1/add.h-stdout.log",
+      "stderr": "project_1/add.h-stderr.log",
+      "status": "NotReMounted",
+      "explicit_deps": [],
+      "scanned_deps": []
+    },
+    {
+      "target": "project_1/wrapper.h",
+      "stdout": "project_1/wrapper.h-stdout.log",
+      "stderr": "project_1/wrapper.h-stderr.log",
+      "status": "NotReMounted",
+      "explicit_deps": [],
+      "scanned_deps": []
+    },
+    {
+      "target": "project_1/add.o",
+      "stdout": "project_1/add.o-stdout.log",
+      "stderr": "project_1/add.o-stderr.log",
+      "status": "Failed",
+      "explicit_deps": [
+        "project_1/add.c"
+      ],
+      "scanned_deps": [
+        "project_1/add.h"
+      ]
+    },
+    {
+      "target": "project_1/add.c",
+      "stdout": "project_1/add.c-stdout.log",
+      "stderr": "project_1/add.c-stderr.log",
+      "status": "Mounted",
+      "explicit_deps": [],
       "scanned_deps": []
     }
   ]

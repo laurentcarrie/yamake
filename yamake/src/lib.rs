@@ -2,11 +2,11 @@
 //!
 //!
 //!
-#![doc = include_str!("doc.md")]
+// #![doc = include_str!("doc.md")]
 
-// use simple_mermaid::mermaid;
+// // use simple_mermaid::mermaid;
 
-#[doc = mermaid!("graph1.md")]
+// #[doc = mermaid!("graph1.md")]
 
 /// the model providing traits for users to implement
 pub mod model;
@@ -17,13 +17,9 @@ pub mod rules;
 
 pub(crate) mod actions;
 
-pub(crate) mod target_hash;
-
-pub(crate) mod test_c;
-pub(crate) mod test_latex;
-
 pub mod error;
 pub mod helpers;
+pub(crate) mod tests;
 
 // pub fn add(left: u64, right: u64) -> u64 {
 //     left + right

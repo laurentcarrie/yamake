@@ -3,7 +3,7 @@ use std::fmt;
 use colored_text::Colorize;
 use petgraph::Graph;
 use serde::{Deserialize, Serialize};
-use simple_mermaid::mermaid;
+// use simple_mermaid::mermaid;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -85,6 +85,18 @@ impl std::fmt::Debug for dyn GNode {
             .field("tag", &self.tag())
             .finish()
     }
+}
+
+#[derive(Debug)]
+pub enum ENodeStatus {
+    Initial,
+    MissingSource,
+    AncestorFailed,
+    BuildFailed,
+    ExpandFailed,
+    GraphChanged,
+    Changed,
+    Unchanged,
 }
 
 #[derive(Debug)]

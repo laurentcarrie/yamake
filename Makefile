@@ -106,7 +106,7 @@ test_pdf : build
 
 test: build
 	echo "" > yamake.log
-	cd yamake && cargo test
+	cd yamake && cargo fmt && cargo test
 
 png : run
 	@printf "$(Blue)when running$(Color_Off) $(Red)our demo tool$(Color_Off)$(Blue), dot files of the build graph are generated$(Color_Off) => use graphviz to get png files\n"

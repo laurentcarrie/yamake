@@ -234,7 +234,18 @@ mod tests {
         //         _ => assert_eq!(*v, M::BuildType::NotTouched(node.target())),
         //      }
         // }
+        Ok(())
+    }
 
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn test_node_state1() -> Result<(), Box<dyn std::error::Error>> {
+        simple_logging::log_to_stderr(log::LevelFilter::Info);
+
+        let mut g = make_graph().await?;
+
+        let ni = g.ni_of_path("project_1/add.o".into()).unwrap();
+        crate::actions::node_life::compute_node_state(&mut g, ni).await?;
+        assert!(false);
         Ok(())
     }
 }
