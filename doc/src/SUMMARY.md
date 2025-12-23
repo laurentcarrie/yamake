@@ -16,6 +16,7 @@
     - [id](./addrule-id.md)
     - [tag](./addrule-tag.md)
     - [scan](./addrule-scan.md)
+- [Graph life](./graph-life.md)
 - [Node life](./node-life.md)
 - [Generated Nodes](./generated-nodes.md)
     - [blah](./blah.md)

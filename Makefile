@@ -106,7 +106,7 @@ test_pdf : build
 
 test: build
 	echo "" > yamake.log
-	cd yamake && cargo fmt && cargo test
+	cargo fmt && cargo test ${args}
 
 png : run
 	@printf "$(Blue)when running$(Color_Off) $(Red)our demo tool$(Color_Off)$(Blue), dot files of the build graph are generated$(Color_Off) => use graphviz to get png files\n"
@@ -116,7 +116,7 @@ png : run
 
 build: ## build our demo tool, written in rust, using yamake. This demo tool is a builder for our demo project, a C project in $(srcdir) directory
 	@printf "\n$(White)$(On_Blue)build the demo$(Color_Off)\n"
-	( cd yamake ; cargo fmt && 	cargo build --examples  )
+	( cargo fmt && 	cargo build --examples  )
 	@printf "finished building\n"
 
 clean:
