@@ -1,37 +1,8 @@
-//! yamake
-//!
-//!
-//!
-// #![doc = include_str!("doc.md")]
+//! yamake - yet another make tool
 
-// // use simple_mermaid::mermaid;
-
-// #[doc = mermaid!("graph1.md")]
-
-/// the model providing traits for users to implement
 pub mod model;
+pub mod c_nodes;
+mod walk;
 
-/// implementation for building C projects.
-/// use it as doc
-pub mod rules;
-
-pub(crate) mod actions;
-
-pub mod error;
-pub mod helpers;
-pub(crate) mod tests;
-
-// pub fn add(left: u64, right: u64) -> u64 {
-//     left + right
-// }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn it_works() {
-//         let result = add(2, 2);
-//         assert_eq!(result, 4);
-//     }
-// }
+#[cfg(test)]
+mod tests;
