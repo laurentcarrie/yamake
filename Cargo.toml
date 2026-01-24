@@ -1,6 +1,6 @@
 [package]
 name = "yamake"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 description="yet another make tool."
 license = "MIT OR Apache-2.0"
@@ -12,6 +12,7 @@ readme="../README.md"
 [dependencies]
 argh = "0.1.13"
 chrono = "0.4.42"
+colored = "2"
 colored_text = "0.3.0"
 env_logger = "0.11.8"
 fern = "0.7.1"
