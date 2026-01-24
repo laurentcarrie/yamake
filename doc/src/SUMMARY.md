@@ -21,4 +21,5 @@
 - [Generated Nodes](./generated-nodes.md)
     - [blah](./blah.md)
     - [expand](./expand.md)
+    - [x](./x.md)
     - [steps](./generated-nodes-steps.md)

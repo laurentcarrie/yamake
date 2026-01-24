@@ -52,9 +52,7 @@ decision_graph_changed{
 
 expand --> decision_graph_changed
 
-decision_graph_changed -- yes --> build_changed
-build_changed[build]:::action
-build_changed --> expand
+decision_graph_changed -- yes --> mount
 
 decision_graph_changed -- no --> build_not_changed
 build_not_changed[build]:::action
@@ -86,3 +84,4 @@ classDef choice fill:lavender,color:black,font-weight:bold,stroke-width:2px,stro
 ```
 
 ---
+

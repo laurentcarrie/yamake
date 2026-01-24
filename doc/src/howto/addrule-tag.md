@@ -1,7 +1,7 @@
 # tag ( mandatory )
 
 ```rust
-{{#include ../../yamake/src/model.rs:tag}}
+{{#include ../../src/model.rs:tag}}
 ```
 
 at build time, the build function will receive a collection of nodes, that are the predecessors. Not all nodes have the same role,

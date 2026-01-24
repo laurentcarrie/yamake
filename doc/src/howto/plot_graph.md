@@ -3,7 +3,7 @@
 now that the graph is built, we use petgraph utility to plot the graph
 
 ```rust
-{{#include ../../../yamake/examples/c_project_demo/main.rs:dot}}
+{{#include ../../../examples/c_project_demo/main.rs:dot}}
 ```
 
 run `dot -Tpng -o out.png out.dot` to get the image :

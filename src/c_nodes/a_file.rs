@@ -1,5 +1,7 @@
-use std::path::PathBuf;
 use crate::model::GNode;
+use log::info;
+use std::path::PathBuf;
+use std::process::Command;
 
 pub struct AFile {
     pub name: String,
@@ -14,10 +16,25 @@ impl AFile {
 }
 
 impl GNode for AFile {
-    fn build(&self, _sandbox: &PathBuf, predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
-        let inputs: Vec<String> = predecessors.iter().map(|p| p.id()).collect();
-        println!("Archiving {} from {:?}", self.name, inputs);
-        true
+    fn build(&self, sandbox: &PathBuf, predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
+        let inputs: Vec<PathBuf> = predecessors
+            .iter()
+            .map(|p| sandbox.join(p.pathbuf()))
+            .collect();
+
+        let mut cmd = Command::new("ar");
+        cmd.arg("rcs");
+        cmd.arg(sandbox.join(&self.name));
+        for input in &inputs {
+            cmd.arg(input);
+        }
+
+        info!("Running: {:?}", cmd);
+
+        match cmd.status() {
+            Ok(status) => status.success(),
+            Err(_) => false,
+        }
     }
 
     fn id(&self) -> String {

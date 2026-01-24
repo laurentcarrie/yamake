@@ -38,11 +38,7 @@ pub struct TargetFile {
 }
 
 impl GNode for TargetFile {
-    fn build(
-        &self,
-        _sandbox: &PathBuf,
-        predecessors: &[&Box<dyn GNode + Send + Sync>],
-    ) -> bool {
+    fn build(&self, _sandbox: &PathBuf, predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
         let _inputs: Vec<String> = predecessors.iter().map(|p| p.id()).collect();
         true
     }

@@ -1,5 +1,5 @@
 .PHONY: run build doc png test1 test2 tests help json json-errors runPdf doc-serve \
-demo-cluster
+demo-cluster reinstall-mdbook run_1 run_2 run_3 run_4 demo-expand show-report clean
 .DEFAULT: help
 
 
@@ -151,6 +151,12 @@ show-errors: ## use make-report.json to find errors and print relevant logs
 
 # ANCHOR_END: json-errors
 
+
+reinstall-mdbook: ## reinstall mdbook
+	cargo install mdbook@0.5.2 --force
+	cargo install mdbook-mermaid --force
+	cargo install mdbook-admonish --force
+	cargo install mdbook-toc --force
 
 doc-serve: ## run mdbook and serve
 	cd doc && mdbook serve

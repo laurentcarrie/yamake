@@ -25,5 +25,5 @@ note that sandbox paths are replaced with srcdir paths. This way, in your editor
 [top](#top)
 
 ```rust
-{{#include ../../../yamake/src/model.rs:buildtype}}
+{{#include ../../../src/model.rs:buildtype}}
 ```

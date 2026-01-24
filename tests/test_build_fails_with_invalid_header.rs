@@ -66,14 +66,20 @@ fn test_build_fails_with_invalid_header() {
 
     // The executable should not exist due to build failure
     let app_path = sandbox_path.join("project_1/app");
-    assert!(!app_path.exists(), "Executable should not exist due to build failure");
+    assert!(
+        !app_path.exists(),
+        "Executable should not exist due to build failure"
+    );
 
     // Check that at least one node has BuildFailed status
     let has_build_failed = g
         .nodes_status
         .values()
         .any(|&status| status == GNodeStatus::BuildFailed);
-    assert!(has_build_failed, "At least one node should have BuildFailed status");
+    assert!(
+        has_build_failed,
+        "At least one node should have BuildFailed status"
+    );
 
     // Check that app node has AncestorFailed status
     assert_eq!(

@@ -1,6 +1,7 @@
+use crate::model::GNode;
+use log::info;
 use std::path::PathBuf;
 use std::process::Command;
-use crate::model::GNode;
 
 pub struct XFile {
     pub name: String,
@@ -16,7 +17,10 @@ impl XFile {
 
 impl GNode for XFile {
     fn build(&self, sandbox: &PathBuf, predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
-        let inputs: Vec<PathBuf> = predecessors.iter().map(|p| sandbox.join(p.pathbuf())).collect();
+        let inputs: Vec<PathBuf> = predecessors
+            .iter()
+            .map(|p| sandbox.join(p.pathbuf()))
+            .collect();
 
         let mut cmd = Command::new("gcc");
         cmd.arg("-o").arg(sandbox.join(&self.name));
@@ -24,7 +28,7 @@ impl GNode for XFile {
             cmd.arg(input);
         }
 
-        println!("Running: {:?}", cmd);
+        info!("Running: {:?}", cmd);
 
         match cmd.status() {
             Ok(status) => status.success(),

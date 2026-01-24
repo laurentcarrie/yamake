@@ -9,7 +9,7 @@ Adding a rule is implementing `yamake::model::GNode` trait.
 ## scan
 
 ```rust
-{{#include ../../yamake/src/model.rs:scan}}
+{{#include ../../src/model.rs:scan}}
 ```
 
 the default implementation of a scanner returns an empty list. Having a wrong scanner will not prevent the build from run, but it will prevent it to run
@@ -18,7 +18,7 @@ the correct rules in case a source is modified.
 ## build
 
 ```rust
-{{#include ../../yamake/src/model.rs:build}}
+{{#include ../../src/model.rs:build}}
 ```
 
 @todo : review this comment
@@ -31,5 +31,5 @@ the default implementation will return true, which means that the build was succ
 a string that uniquely represents a node, used as key in the maps. Default implementation is to use the target, you can change it at your own risk.
 
 ```rust
-{{#include ../../yamake/src/model.rs:target}}
+{{#include ../../src/model.rs:target}}
 ```

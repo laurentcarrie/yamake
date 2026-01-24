@@ -3,6 +3,4 @@
 
 int add(int,int) ;
 
-int foo() ;
-
 #endif

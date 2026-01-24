@@ -1,7 +1,7 @@
 # scan ( optional )
 
 ```rust
-{{#include ../../yamake/src/model.rs:scan}}
+{{#include ../../src/model.rs:scan}}
 ```
 
 scanning a node means returning a list of paths, that the nodes depends on. At scan time, yamake will add an edge for each scanned dependency

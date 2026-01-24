@@ -29,6 +29,10 @@ the Green arrow shows the dependency, it will trigger the expansion.
 
 ```mermaid
 
+---
+
+---
+
 
 flowchart
 
@@ -46,7 +50,7 @@ flowchart
     greetings_yml ex1@--> liblanguages_a
 
 
-    classDef source fill:#f96
+    %% classDef source fill:#f96
     classDef generated fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
     classDef ofile fill:#03f,color:#f66
 
@@ -105,10 +109,16 @@ and the edges :
 
 ```mermaid
 
+---
+
+animate-yml-file: expand.yml
+
+---
+
 flowchart
 
     greetings_yml([greetings.yml]):::source
-    greetings_json([greetings.json]):::source
+    greetings_json([greetings.json]):::json
     main_c([main.c]):::source
 
     subgraph expanded nodes
@@ -134,13 +144,13 @@ flowchart
     liblanguages_a{{liblanguages.a}}:::ofile
     demo{{demo}}:::ofile
 
-    greetings_yml eg1@--> english_h
-    greetings_yml eg2@--> german_h 
-    greetings_yml eg3@--> french_h 
-    greetings_yml eg4@--> english_c 
-    greetings_yml eg5@--> german_c 
-    greetings_yml eg6@--> french_c 
-    greetings_yml eg7@--> languages_h
+    greetings_json eg1@--> english_h
+    greetings_json eg2@--> german_h 
+    greetings_json eg3@--> french_h 
+    greetings_json eg4@--> english_c 
+    greetings_json eg5@--> german_c 
+    greetings_json eg6@--> french_c 
+    greetings_json eg7@--> languages_h
 
     languages_h es8@--> main_o
     english_h es1@--> english_o
@@ -164,26 +174,31 @@ flowchart
     german_o ex2@--> liblanguages_a
     french_o ex3@--> liblanguages_a
 
+    greetings_yml eg8@--> greetings_json 
 
 
-    classDef source fill:#f96
-    classDef generated fill:#bbf,stroke:#3f3,stroke-width:5px,color:#fff,stroke-dasharray: 5 5
-    classDef oexpanded fill:#03f,stroke:#3f3,stroke-width:5px,color:#fff,stroke-dasharray: 5 5
-    classDef ofile fill:#03f,color:#f66
+    %% classDef source fill:#f96
+    %% classDef generated fill:#bbf,stroke:#3f3,stroke-width:5px,color:#fff,stroke-dasharray: 5 5
+    %% classDef oexpanded fill:#03f,stroke:#3f3,stroke-width:5px,color:#fff,stroke-dasharray: 5 5
+    %% classDef ofile fill:#03f,color:#f66
     %% classDef compile color:red,stroke-dasharray: 9,5,stroke-dashoffset: 900,animation: dash 25s linear infinite;
 
     classDef e_htosource stroke:#aaa,stroke-width:0.7x ,stroke-dasharray: 10,5;
-    class es1,es2,es3,es4,es5,es6,es7,es8,es9,es10 e_htosource;
-
-    classDef e_generate stroke:#f00,stroke-width:1px;
-    class eg1,eg2,eg3,eg4,eg5,eg6,eg7 e_generate;
-
+    classDef e_generate stroke:#f00,stroke-with:1px;
     classDef e_compile stroke:#00f,stroke-width:1px;
-    class ec1,ec2,ec3,ec4,ec5,ec6,ec7,ec20,ec21,ec22 e_compile;
-
     classDef e_expand stroke:#3f3,stroke-width:3px;
-    class ex1,ex2,ex3,ex4,ex5,ex6,ex7,ex20,ex21,ex22 e_expand;
+    classDef e_hidden stroke:#fff,stroke-width:1px;
 
+   %% class eg1,eg2,eg3,eg4,eg5,eg6,eg7,eg8,eg9,eg10,eg11,eg12,eg13,eg14,eg15,eg16,eg17,eg18,eg19,eg20 e_generated;
+   class json json;
+
+    %% mermaid-animate-tag languages_h
+    %% mermaid-animate-tag generated
+    %% mermaid-animate-tag source
+    %% mermaid-animate-tag oexpanded
+    %% mermaid-animate-tag ofile
+    %% mermaid-animate-tag e_generated
+    %% mermaid-animate-tag json
 
 ```
 
