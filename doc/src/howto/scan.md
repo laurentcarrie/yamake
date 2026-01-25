@@ -1,13 +1,9 @@
 # scan
 
-The scan will add new nodes to the graph :
+The scan is now performed automatically during `make()`. It adds edges to the graph based on `#include` directives found in source files.
 
-```rust
-{{#include ../../../yamake/examples/C_demo_project.rs:scan}}
-```
-
-after the scan, we will have 3 new edges :
-- main.o depends on add.h and wrapper.h
+After the scan, we will have new edges:
+- main.o depends on add.h and wrapper.h (via wrapper.h)
 - add.o depends on add.h
 
 

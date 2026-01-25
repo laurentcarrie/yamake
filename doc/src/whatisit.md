@@ -28,6 +28,11 @@ a lot of code is generated you have to do it in an exact order. You also want to
 So you need a build tool
 
 ```mermaid
+
+---
+
+---
+
 graph TD;
     subgraph songbook sources
         yml@{ shape: docs, label: "root/**/song.yml"}

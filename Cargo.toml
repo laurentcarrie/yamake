@@ -1,0 +1,37 @@
+[package]
+name = "yamake"
+version = "0.1.5"
+edition = "2024"
+description="yet another make tool."
+license = "MIT OR Apache-2.0"
+repository="https://github.com/laurentcarrie/yamake"
+readme="README.md"
+
+
+
+[dependencies]
+argh = "0.1.13"
+chrono = "0.4.42"
+colored = "2"
+colored_text = "0.3.0"
+env_logger = "0.11.8"
+fern = "0.7.1"
+fix_fn = "1.0.2"
+flexi_logger = "0.31.7"
+futures = "0.3.31"
+hex = "0.4.3"
+humantime = "2.3.0"
+indicatif = "0.18.0"
+log = "0.4.27"
+markdown-heading-id = "0.1.0"
+mdbook-mermaid = "0.17.0"
+petgraph = { version = "0.8.2", features = ["serde_derive", "serde","all"] }
+pulldown-cmark = "0.13.0"
+rayon = "1.10"
+regex = "1.11.1"
+serde = {version="1.0.219",features=["serde_derive"]}
+serde_json = "1.0.142"
+sha2 = "0.10.9"
+tempdir = "0.3.7"
+tokio = { version = "1.46.1", features = ["full"] }
+walkdir = "2.5.0"

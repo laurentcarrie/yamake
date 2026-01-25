@@ -25,3 +25,4 @@ out.dot
 out.png
 sandbox
 *.log
+node_modules

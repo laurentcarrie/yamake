@@ -10,5 +10,5 @@ Here, we specify the graph, which will allow yamake to process the nodes in the 
 What is actully performed to build the nodes (linking, compiling,...) is in the implementation of `Ofile` and `Xfile`, that implements `yamake::model::GNode` trait.
 
 ```rust
-{{#include ../../../yamake/examples/C_demo_project.rs:add_edges}}
+{{#include ../../../examples/c_project.rs:add_edges}}
 ```

@@ -1,7 +1,7 @@
 # target ( mandatory )
 
 ```rust
-{{#include ../../yamake/src/model.rs:target}}
+{{#include ../../src/model.rs:target}}
 ```
 
 the target is the path of a node, relative to the sandbox directory.

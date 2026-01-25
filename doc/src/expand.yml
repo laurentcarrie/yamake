@@ -1,0 +1,47 @@
+delay: 3000
+tags: 
+  - generated
+  - source
+  - oexpanded
+  - ofile
+  - e_generated
+  - json
+tag-values:
+  - name: generated
+    value: eg1,eg2,eg3,eg4,eg5,eg6,eg7,eg8,eg9,eg10,eg11,eg12,eg13,eg14,eg15,eg16,eg17,eg18,eg19,eg20 
+
+
+variants: 
+  - name: hidden
+    value: 'classDef {tag} fill:#fff,stroke:#fff,stroke-width:1px,color:#fff,stroke-dasharray: 5 5;'
+  - name: generated
+    value: 'classDef {tag} fill:#bbb,stroke:#3f3,stroke-width:5px,color:#fff,stroke-dasharray: 5 5;'
+  - name: source
+    value: 'classDef {tag} fill:#f96'  
+  - name: known
+    value: 'classDef {tag} fill:#6f6'
+  - name: oexpanded
+    value: 'classDef {tag} fill:#f96'
+  - name: e_off
+    value: 'classDef {tag} stroke:#eee;'  
+  - name: e_on
+    value: 'classDef {tag} stroke:red;'
+frames:
+  - title : |
+      <h3 style="background-color:coral">initial</h3>
+    toggles:
+      - generated@hidden
+      - source@hidden
+      - oexpanded@hidden
+      - ofile@hidden
+      - e_generated@e_off
+      - json@hidden
+  - title : |
+        <h3 style="background-color:coral">known</h3>
+    toggles:
+      - source@known
+      - json@known
+  - title : |
+          <h3 style="background-color:coral">expand</h3>
+    toggles:
+      - e_generated@e_on

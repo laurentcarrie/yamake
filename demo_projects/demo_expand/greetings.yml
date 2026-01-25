@@ -1,0 +1,11 @@
+languages:
+    FR:
+      hello: "Bonjour le monde!"
+      goodbye: "Au revoir le monde!"
+    EN:
+      hello: "Hello world!"
+      goodbye: "Goodbye world!"
+    DE:
+      hello: "Hallo Welt!"
+      goodbye: "Auf Wiedersehen Welt!" 
+      

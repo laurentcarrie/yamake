@@ -1,0 +1,20 @@
+
+[0;37m[44muse make-report.json to find error and print relevant logs[0m
+----------- stdout
+ERROR while building target [0;31mproject_1/add.o-stdout.log[0m
+-----------
+----------- end stdout
+----------- stderr
+ERROR while building target [0;31mproject_1/add.o-stderr.log[0m
+-----------
+/Users/laurent/work/yamake/demo_projects/project_1/add.c:7:1: error: unknown type name 'blah'
+    7 | blah blah
+      | ^
+/Users/laurent/work/yamake/demo_projects/project_1/add.c:7:10: error: expected ';' after top level declarator
+    7 | blah blah
+      |          ^
+      |          ;
+2 errors generated.
+----------- end stderr
+
+[0;37m[44mend show-errors[0m

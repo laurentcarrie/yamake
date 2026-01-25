@@ -3,27 +3,20 @@
 # report
 [top](#top)
 
-after running make, the file `make-report.json` is written in the sandbox, here are the first lines printed
-
-```json
-{{#include ../../../sandbox/make-report.json:1:20}}
-```
-
-you can add this in your makefile ( :blush: yes I use make for the top level tasks )
-
-## add to your Makefile
-[top](#top)
-
-```makefile
-{{#include ../../../Makefile:json-errors}}
-```
-
-> [!TIP]
-note that sandbox paths are replaced with srcdir paths. This way, in your editor, for instance vscode, you clicking on the error will open the source file, and not the copy in the sandbox.
+The `make()` method returns a boolean indicating success or failure. You can also inspect the `nodes_status` map to see the status of each node after the build.
 
 ## the status types
 [top](#top)
 
 ```rust
-{{#include ../../../yamake/src/model.rs:buildtype}}
+{{#include ../../../src/model.rs:buildtype}}
 ```
+
+Status meanings:
+- **Initial**: Node has not been processed yet
+- **Mounted**: Root node source file has been copied to sandbox
+- **MountedFailed**: Failed to copy source file to sandbox
+- **Running**: Node build is currently in progress
+- **Build**: Node was built successfully
+- **BuildFailed**: Node build failed
+- **AncestorFailed**: A predecessor node failed, so this node was skipped

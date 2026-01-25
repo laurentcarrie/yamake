@@ -6,29 +6,42 @@ title = "yamake"
 
 [preprocessor]
 
-[preprocessor.mermaid]
-command = "mdbook-mermaid"
+# [preprocessor.mermaid]
+# command = "mdbook-mermaid"
+# optional = true
 
 
 [build]
 create-missing = true
 
 
-[preprocessor.toc]
-command = "mdbook-toc"
+# [preprocessor.toc]
+# command = "mdbook-toc"
+# optional = true
 
 [output.html]
 #mathjax-support = true
 #additional-css = ["dtmo.css", "mermaid.css"]
-additional-js = ["mermaid.min.js", "mermaid-init.js"]
+additional-js = [
+    "mermaid.min.js",
+    "mermaid-init.js",
+    "mermaid-animate.js",
+#"reveal-mermaid.js",
+#"reveal-mermaid-animation.js",
+#"reveal-mermaid-animation-handlers.js"
+]
 default-theme = "rust"
 preferred-dark-theme = "navy"
 additional-css = ["theme/css/custom.css"]
 
 #[output.html.redirect]
 
-[preprocessor.alerts]
+#[preprocessor.alerts]
 
-[preprocessor.pikchr]
+#[preprocessor.pikchr]
 
-[preprocessor.emojicodes]
+#[preprocessor.emojicodes]
+
+# [preprocessor.mermaid-animate]
+# after=["mermaid"]
+# optional = true

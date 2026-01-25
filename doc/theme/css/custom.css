@@ -1,3 +1,45 @@
 :root {
   --content-max-width: 1200px;
 }
+
+button.mermaid-animate  {
+  background-color: #4CAF50; /* Green */
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+input.mermaid-animate  {
+  background-color: #4CAF50; /* Green */
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+
+p.centered {
+	/* position: absolute; */
+  position:relative;
+	top: 50%;
+	left: 50%;
+	/* transform: translate(-50%, -50%); */
+}
+
+div.centered {
+	position: relative;
+	top: 50%;
+	left: 50%;
+	/* transform: translate(-50%, -50%); */
+}

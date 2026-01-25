@@ -10,7 +10,7 @@ see section ...
 
 in our example, for the demo add the nodes manually.
 ```rust
-{{#include ../../../yamake/examples/C_demo_project.rs:add_nodes}}
+{{#include ../../../examples/c_project.rs:add_nodes}}
 ```
 
 ---
