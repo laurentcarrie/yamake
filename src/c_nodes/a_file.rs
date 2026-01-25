@@ -1,5 +1,5 @@
+use crate::command::run_command;
 use crate::model::GNode;
-use log::info;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -29,12 +29,7 @@ impl GNode for AFile {
             cmd.arg(input);
         }
 
-        info!("Running: {cmd:?}");
-
-        match cmd.status() {
-            Ok(status) => status.success(),
-            Err(_) => false,
-        }
+        run_command(&mut cmd, sandbox, &self.name)
     }
 
     fn id(&self) -> String {

@@ -1,5 +1,5 @@
+use crate::command::run_command;
 use crate::model::GNode;
-use log::info;
 use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
@@ -9,6 +9,7 @@ use std::process::Command;
 pub struct OFile {
     pub name: String,
     pub include_paths: Vec<PathBuf>,
+    pub compile_flags: Vec<String>,
 }
 
 fn scan_file_recursive(
@@ -49,10 +50,11 @@ fn scan_file_recursive(
 }
 
 impl OFile {
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &str, include_paths: Vec<PathBuf>, compile_flags: Vec<String>) -> Self {
         Self {
             name: name.to_string(),
-            include_paths: Vec::new(),
+            include_paths,
+            compile_flags,
         }
     }
 }
@@ -67,6 +69,9 @@ impl GNode for OFile {
 
         let mut cmd = Command::new("gcc");
         cmd.arg("-c");
+        for flag in &self.compile_flags {
+            cmd.arg(flag);
+        }
         cmd.arg("-I").arg(sandbox);
         for include_path in &self.include_paths {
             cmd.arg("-I").arg(sandbox.join(include_path));
@@ -76,12 +81,7 @@ impl GNode for OFile {
             cmd.arg(input);
         }
 
-        info!("Running: {cmd:?}");
-
-        match cmd.status() {
-            Ok(status) => status.success(),
-            Err(_) => false,
-        }
+        run_command(&mut cmd, sandbox, &self.name)
     }
 
     fn scan(

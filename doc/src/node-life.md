@@ -138,7 +138,7 @@ classDef choice fill:lavender,color:black,font-weight:bold,stroke-width:2px,stro
 
 # digest
 
-Digests (SHA256 hashes) of nodes are stored in `digest.yml` in the sandbox. The file contains an array of `OutputInfo` entries:
+Digests (SHA256 hashes) of nodes are stored in `make-output.yml` in the sandbox. The file contains an array of `OutputInfo` entries:
 
 ```yaml
 - pathbuf: project_1/main.c
@@ -158,7 +158,7 @@ On subsequent builds, digests are compared to determine if files have changed:
 # source node
 [top](#top)
 
-A source node has no predecessor. It is a file in the source directory, and there is no rule to build it. It is mounted (copied from source directory to sandbox). When mounted, its digest is compared to the previous digest stored in `digest.yml`.
+A source node has no predecessor. It is a file in the source directory, and there is no rule to build it. It is mounted (copied from source directory to sandbox). When mounted, its digest is compared to the previous digest stored in `make-output.yml`.
 
 ---
 

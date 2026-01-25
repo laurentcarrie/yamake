@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Mutex;
 
-use crate::model::{G, GNodeStatus, OutputInfo};
+use crate::model::{G, GNodeStatus, OutputInfo, PredecessorInfo};
 use crate::mount::mount;
 
 fn compute_file_digest(path: &std::path::Path) -> Option<String> {
@@ -118,7 +118,7 @@ impl G {
         self.print_status();
 
         // Load previous digests
-        let digest_path = self.sandbox.join("digest.yml");
+        let digest_path = self.sandbox.join("make-output.yml");
         let previous_digests = load_digests(&digest_path);
 
         // Mount root nodes
@@ -336,27 +336,64 @@ impl G {
                 .unwrap_or(GNodeStatus::Initial);
             let digest = compute_file_digest(&file_path);
 
+            // Compute absolute paths
+            let absolute_path = file_path.canonicalize().ok();
+            let node_id = node.id();
+            let log_base = self.sandbox.join("logs").join(&node_id);
+            let stdout_file = log_base.with_file_name(format!(
+                "{}.stdout",
+                log_base.file_name().unwrap_or_default().to_string_lossy()
+            ));
+            let stderr_file = log_base.with_file_name(format!(
+                "{}.stderr",
+                log_base.file_name().unwrap_or_default().to_string_lossy()
+            ));
+            let stdout_path = stdout_file.canonicalize().ok();
+            let stderr_path = stderr_file.canonicalize().ok();
+
+            // Collect predecessors with their status
+            let predecessors: Vec<PredecessorInfo> = self
+                .g
+                .neighbors_directed(node_idx, Direction::Incoming)
+                .map(|pred_idx| {
+                    let pred_node = &self.g[pred_idx];
+                    let pred_status = self
+                        .nodes_status
+                        .get(&pred_idx)
+                        .copied()
+                        .unwrap_or(GNodeStatus::Initial);
+                    PredecessorInfo {
+                        pathbuf: pred_node.pathbuf(),
+                        status: pred_status,
+                    }
+                })
+                .collect();
+
             infos.push(OutputInfo {
                 pathbuf: node.pathbuf(),
                 status,
                 digest,
+                absolute_path,
+                stdout_path,
+                stderr_path,
+                predecessors,
             });
         }
 
         // Sort by pathbuf for consistent output
         infos.sort_by(|a, b| a.pathbuf.cmp(&b.pathbuf));
 
-        let digest_path = self.sandbox.join("digest.yml");
+        let digest_path = self.sandbox.join("make-output.yml");
         match File::create(&digest_path) {
             Ok(file) => {
                 if let Err(e) = serde_yaml::to_writer(file, &infos) {
-                    error!("Failed to write digest.yml: {e}");
+                    error!("Failed to write make-output.yml: {e}");
                 } else {
                     info!("Saved {} entries to {}", infos.len(), digest_path.display());
                 }
             }
             Err(e) => {
-                error!("Failed to create digest.yml: {e}");
+                error!("Failed to create make-output.yml: {e}");
             }
         }
     }

@@ -31,7 +31,7 @@ fn test_scan_fails_on_wrong_include_path() {
 
     // Create the nodes
     let add_c = CFile::new("project_1/add.c");
-    let add_o = OFile::new("project_1/add.o");
+    let add_o = OFile::new("project_1/add.o", vec![], vec![]);
 
     // Create a boxed predecessor and get a trait object reference
     let add_c_box: Box<dyn GNode + Send + Sync> = Box::new(add_c);

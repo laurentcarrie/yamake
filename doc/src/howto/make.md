@@ -7,7 +7,7 @@ Running the make command:
 - Compares source file digests to detect changes
 - Scans for dependencies (adds edges for `#include` directives)
 - Traverses the graph and builds output artifacts in parallel where possible
-- Saves build results to `digest.yml`
+- Saves build results to `make-output.yml`
 
 ```rust
 {{#include ../../../examples/c_project.rs:make}}
@@ -15,7 +15,7 @@ Running the make command:
 
 ## Build output
 
-After the build, `<sandbox>/digest.yml` contains the status and digest for each node:
+After the build, `<sandbox>/make-output.yml` contains the status and digest for each node:
 
 ```yaml
 - pathbuf: project_1/main.c

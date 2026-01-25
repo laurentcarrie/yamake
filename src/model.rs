@@ -24,10 +24,20 @@ pub enum GNodeStatus {
 // ANCHOR_END: buildtype
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PredecessorInfo {
+    pub pathbuf: PathBuf,
+    pub status: GNodeStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OutputInfo {
     pub pathbuf: PathBuf,
     pub status: GNodeStatus,
     pub digest: Option<String>,
+    pub absolute_path: Option<PathBuf>,
+    pub stdout_path: Option<PathBuf>,
+    pub stderr_path: Option<PathBuf>,
+    pub predecessors: Vec<PredecessorInfo>,
 }
 
 #[derive(Debug)]

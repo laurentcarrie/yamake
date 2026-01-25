@@ -49,9 +49,9 @@ fn test_build_fails_with_invalid_header() {
     let mut g = G::new(srcdir_path, sandbox_path.clone());
 
     let main_c = g.add_root_node(CFile::new("project_1/main.c")).unwrap();
-    let main_o = g.add_node(OFile::new("project_1/main.o")).unwrap();
+    let main_o = g.add_node(OFile::new("project_1/main.o", vec![], vec![])).unwrap();
     let add_c = g.add_root_node(CFile::new("project_1/add.c")).unwrap();
-    let add_o = g.add_node(OFile::new("project_1/add.o")).unwrap();
+    let add_o = g.add_node(OFile::new("project_1/add.o", vec![], vec!["-DYYY_defined".to_string()])).unwrap();
     let _add_h = g.add_root_node(HFile::new("project_1/add.h")).unwrap();
     let _wrapper_h = g.add_root_node(HFile::new("project_1/wrapper.h")).unwrap();
     let app = g.add_node(XFile::new("project_1/app")).unwrap();

@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file.
   - `BuildNotRequired`: Node was skipped because all predecessors are unchanged and output digest matches
   - `BuildSuccess`: Node was built successfully with changed output
   - `AncestorFailed`: Node was skipped because a predecessor failed
-- **digest.yml format**: Now stores full build information including:
+- **make-output.yml format**: Now stores full build information including:
   - `pathbuf`: File path relative to sandbox
   - `status`: Final node status after build
   - `digest`: SHA256 hash of file contents (or null if file doesn't exist)

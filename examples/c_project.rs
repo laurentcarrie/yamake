@@ -38,9 +38,9 @@ fn main() {
 
     // ANCHOR: add_nodes
     let main_c = g.add_root_node(CFile::new("project_1/main.c")).unwrap();
-    let main_o = g.add_node(OFile::new("project_1/main.o")).unwrap();
+    let main_o = g.add_node(OFile::new("project_1/main.o", vec![], vec![])).unwrap();
     let add_c = g.add_root_node(CFile::new("project_1/add.c")).unwrap();
-    let add_o = g.add_node(OFile::new("project_1/add.o")).unwrap();
+    let add_o = g.add_node(OFile::new("project_1/add.o", vec![], vec!["-DYYY_defined".to_string()])).unwrap();
     let _add_h = g.add_root_node(HFile::new("project_1/add.h")).unwrap();
     let _wrapper_h = g.add_root_node(HFile::new("project_1/wrapper.h")).unwrap();
     let project_a = g.add_node(AFile::new("project_1/libproject.a")).unwrap();

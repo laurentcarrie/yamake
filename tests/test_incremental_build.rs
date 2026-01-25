@@ -19,9 +19,9 @@ fn test_incremental_build_unchanged() {
     let mut g = G::new(srcdir, sandbox_path);
 
     let main_c = g.add_root_node(CFile::new("project_1/main.c")).unwrap();
-    let main_o = g.add_node(OFile::new("project_1/main.o")).unwrap();
+    let main_o = g.add_node(OFile::new("project_1/main.o", vec![], vec![])).unwrap();
     let add_c = g.add_root_node(CFile::new("project_1/add.c")).unwrap();
-    let add_o = g.add_node(OFile::new("project_1/add.o")).unwrap();
+    let add_o = g.add_node(OFile::new("project_1/add.o", vec![], vec!["-DYYY_defined".to_string()])).unwrap();
     let add_h = g.add_root_node(HFile::new("project_1/add.h")).unwrap();
     let wrapper_h = g.add_root_node(HFile::new("project_1/wrapper.h")).unwrap();
     let project_a = g.add_node(AFile::new("project_1/libproject.a")).unwrap();
