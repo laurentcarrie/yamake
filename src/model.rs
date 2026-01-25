@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
 
+// ANCHOR: buildtype
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GNodeStatus {
     Initial,
@@ -17,6 +18,7 @@ pub enum GNodeStatus {
     BuildFailed,
     AncestorFailed,
 }
+// ANCHOR_END: buildtype
 
 #[derive(Debug)]
 pub enum GraphError {

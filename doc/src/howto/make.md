@@ -9,7 +9,7 @@ running the make command :
 make will
 
 ```rust
-{{#include ../../../examples/c_project_demo/main.rs:make}}
+{{#include ../../../examples/c_project.rs:make}}
 ```
 
 as a return of the make command, and also stored in the sandbox, you get the result of this action in the file `<sandbox>/make-report.json`
