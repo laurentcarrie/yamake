@@ -3,12 +3,49 @@ use log::info;
 use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub struct OFile {
     pub name: String,
     pub include_paths: Vec<PathBuf>,
+}
+
+fn scan_file_recursive(
+    srcdir: &Path,
+    file_path: &Path,
+    include_re: &Regex,
+    result: &mut Vec<PathBuf>,
+    visited: &mut HashSet<PathBuf>,
+) {
+    let content = fs::read_to_string(file_path)
+        .unwrap_or_else(|e| panic!("Failed to read {}: {}", file_path.display(), e));
+
+    for cap in include_re.captures_iter(&content) {
+        let header = &cap[1];
+        let header_path = PathBuf::from(header);
+
+        // Skip if already visited
+        if visited.contains(&header_path) {
+            continue;
+        }
+
+        let src_header = srcdir.join(&header_path);
+
+        if !src_header.exists() {
+            panic!(
+                "Header file not found: {} (looked in {})",
+                header,
+                src_header.display()
+            );
+        }
+
+        visited.insert(header_path.clone());
+        result.push(header_path);
+
+        // Recursively scan the header file
+        scan_file_recursive(srcdir, &src_header, include_re, result, visited);
+    }
 }
 
 impl OFile {
@@ -18,48 +55,10 @@ impl OFile {
             include_paths: Vec::new(),
         }
     }
-
-    fn scan_file_recursive(
-        &self,
-        srcdir: &PathBuf,
-        file_path: &PathBuf,
-        include_re: &Regex,
-        result: &mut Vec<PathBuf>,
-        visited: &mut HashSet<PathBuf>,
-    ) {
-        let content = fs::read_to_string(file_path)
-            .unwrap_or_else(|e| panic!("Failed to read {}: {}", file_path.display(), e));
-
-        for cap in include_re.captures_iter(&content) {
-            let header = &cap[1];
-            let header_path = PathBuf::from(header);
-
-            // Skip if already visited
-            if visited.contains(&header_path) {
-                continue;
-            }
-
-            let src_header = srcdir.join(&header_path);
-
-            if !src_header.exists() {
-                panic!(
-                    "Header file not found: {} (looked in {})",
-                    header,
-                    src_header.display()
-                );
-            }
-
-            visited.insert(header_path.clone());
-            result.push(header_path);
-
-            // Recursively scan the header file
-            self.scan_file_recursive(srcdir, &src_header, include_re, result, visited);
-        }
-    }
 }
 
 impl GNode for OFile {
-    fn build(&self, sandbox: &PathBuf, predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
+    fn build(&self, sandbox: &Path, predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
         let inputs: Vec<PathBuf> = predecessors
             .iter()
             .filter(|p| p.tag() != "HFile")
@@ -77,7 +76,7 @@ impl GNode for OFile {
             cmd.arg(input);
         }
 
-        info!("Running: {:?}", cmd);
+        info!("Running: {cmd:?}");
 
         match cmd.status() {
             Ok(status) => status.success(),
@@ -87,8 +86,8 @@ impl GNode for OFile {
 
     fn scan(
         &self,
-        srcdir: &PathBuf,
-        predecessors: &[&Box<dyn GNode + Send + Sync>],
+        srcdir: &Path,
+        predecessors: &[&(dyn GNode + Send + Sync)],
     ) -> Vec<PathBuf> {
         let mut result = Vec::new();
         let mut visited = HashSet::new();
@@ -97,7 +96,7 @@ impl GNode for OFile {
         // Scan C files for includes
         for pred in predecessors.iter().filter(|p| p.tag() == "CFile") {
             let file_path = srcdir.join(pred.pathbuf());
-            self.scan_file_recursive(srcdir, &file_path, &include_re, &mut result, &mut visited);
+            scan_file_recursive(srcdir, &file_path, &include_re, &mut result, &mut visited);
         }
 
         result

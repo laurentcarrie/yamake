@@ -17,9 +17,9 @@ fn test_scan_c_file_includes() {
     let add_c = CFile::new("project_1/add.c");
     let add_o = OFile::new("project_1/add.o");
 
-    // Create a boxed predecessor
+    // Create a boxed predecessor and get a trait object reference
     let add_c_box: Box<dyn GNode + Send + Sync> = Box::new(add_c);
-    let predecessors: Vec<&Box<dyn GNode + Send + Sync>> = vec![&add_c_box];
+    let predecessors: Vec<&(dyn GNode + Send + Sync)> = vec![add_c_box.as_ref()];
 
     // Call scan - reads from srcdir
     let result = add_o.scan(&srcdir, &predecessors);

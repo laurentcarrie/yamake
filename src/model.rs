@@ -3,22 +3,32 @@ use log::info;
 use petgraph::Direction;
 use petgraph::Graph;
 use petgraph::graph::{EdgeIndex, NodeIndex};
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 // ANCHOR: buildtype
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum GNodeStatus {
     Initial,
-    Mounted,
+    MountedChanged,
+    MountedNotChanged,
     MountedFailed,
     Running,
-    Build,
+    BuildSuccess,
+    BuildNotRequired,
     BuildFailed,
     AncestorFailed,
 }
 // ANCHOR_END: buildtype
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OutputInfo {
+    pub pathbuf: PathBuf,
+    pub status: GNodeStatus,
+    pub digest: Option<String>,
+}
 
 #[derive(Debug)]
 pub enum GraphError {
@@ -29,8 +39,8 @@ pub enum GraphError {
 impl fmt::Display for GraphError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GraphError::DuplicateId(id) => write!(f, "Duplicate node id: {}", id),
-            GraphError::DuplicatePathBuf(path) => write!(f, "Duplicate node pathbuf: {:?}", path),
+            GraphError::DuplicateId(id) => write!(f, "Duplicate node id: {id}"),
+            GraphError::DuplicatePathBuf(path) => write!(f, "Duplicate node pathbuf: {path:?}"),
         }
     }
 }
@@ -38,13 +48,13 @@ impl fmt::Display for GraphError {
 impl std::error::Error for GraphError {}
 
 pub trait GNode: Send + Sync {
-    fn build(&self, _sandbox: &PathBuf, _predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
+    fn build(&self, _sandbox: &Path, _predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
         panic!("build not implemented for {}", self.id())
     }
     fn scan(
         &self,
-        _srcdir: &PathBuf,
-        _predecessors: &[&Box<dyn GNode + Send + Sync>],
+        _srcdir: &Path,
+        _predecessors: &[&(dyn GNode + Send + Sync)],
     ) -> Vec<PathBuf> {
         Vec::new()
     }
@@ -60,7 +70,7 @@ pub trait GRootNode {
 }
 
 impl<T: GRootNode + Send + Sync> GNode for T {
-    fn build(&self, _sandbox: &PathBuf, _predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
+    fn build(&self, _sandbox: &Path, _predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
         true
     }
 
@@ -135,10 +145,10 @@ impl G {
 
         for node_idx in node_indices {
             // Get predecessors for this node
-            let predecessors: Vec<&Box<dyn GNode + Send + Sync>> = self
+            let predecessors: Vec<&(dyn GNode + Send + Sync)> = self
                 .g
                 .neighbors_directed(node_idx, Direction::Incoming)
-                .map(|idx| &self.g[idx])
+                .map(|idx| self.g[idx].as_ref())
                 .collect();
 
             // Call scan
@@ -159,6 +169,37 @@ impl G {
         }
     }
 
+    /// Returns all root nodes (nodes with no predecessors) in the predecessor tree of the given node.
+    pub fn root_predecessors(&self, node_idx: NodeIndex) -> Vec<NodeIndex> {
+        let mut visited: HashSet<NodeIndex> = HashSet::new();
+        let mut to_visit: Vec<NodeIndex> = vec![node_idx];
+        let mut roots: Vec<NodeIndex> = Vec::new();
+
+        while let Some(idx) = to_visit.pop() {
+            if visited.contains(&idx) {
+                continue;
+            }
+            visited.insert(idx);
+
+            let predecessors: Vec<NodeIndex> = self
+                .g
+                .neighbors_directed(idx, Direction::Incoming)
+                .collect();
+
+            if predecessors.is_empty() {
+                // This is a root node
+                roots.push(idx);
+            } else {
+                // Add predecessors to visit
+                for pred in predecessors {
+                    to_visit.push(pred);
+                }
+            }
+        }
+
+        roots
+    }
+
     pub fn print_status(&self) {
         let mut counts: HashMap<GNodeStatus, usize> = HashMap::new();
 
@@ -170,12 +211,11 @@ impl G {
         let node_count = self.g.node_count();
         assert_eq!(
             total, node_count,
-            "Status count mismatch: {} statuses but {} nodes",
-            total, node_count
+            "Status count mismatch: {total} statuses but {node_count} nodes"
         );
 
         info!(
-            "I:{} M:{} MF:{} R:{} B:{} BF:{} AF:{}",
+            "I:{} MC:{} MN:{} MF:{} R:{} BS:{} BNR:{} BF:{} AF:{}",
             counts
                 .get(&GNodeStatus::Initial)
                 .unwrap_or(&0)
@@ -183,10 +223,16 @@ impl G {
                 .bright_yellow()
                 .bold(),
             counts
-                .get(&GNodeStatus::Mounted)
+                .get(&GNodeStatus::MountedChanged)
                 .unwrap_or(&0)
                 .to_string()
                 .bright_green()
+                .bold(),
+            counts
+                .get(&GNodeStatus::MountedNotChanged)
+                .unwrap_or(&0)
+                .to_string()
+                .bright_blue()
                 .bold(),
             counts.get(&GNodeStatus::MountedFailed).unwrap_or(&0),
             counts
@@ -195,7 +241,13 @@ impl G {
                 .to_string()
                 .bright_cyan()
                 .bold(),
-            counts.get(&GNodeStatus::Build).unwrap_or(&0),
+            counts.get(&GNodeStatus::BuildSuccess).unwrap_or(&0),
+            counts
+                .get(&GNodeStatus::BuildNotRequired)
+                .unwrap_or(&0)
+                .to_string()
+                .bright_magenta()
+                .bold(),
             counts.get(&GNodeStatus::BuildFailed).unwrap_or(&0),
             counts.get(&GNodeStatus::AncestorFailed).unwrap_or(&0)
         );

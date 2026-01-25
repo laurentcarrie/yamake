@@ -49,8 +49,7 @@ fn test_build_c_project() {
     let app_path = sandbox_path.join("project_1/app");
     assert!(
         app_path.exists(),
-        "Executable should exist at {:?}",
-        app_path
+        "Executable should exist at {app_path:?}"
     );
 
     // Run the executable and check output

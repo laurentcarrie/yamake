@@ -1,6 +1,6 @@
 use crate::model::GNode;
 use log::info;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub struct AFile {
@@ -16,7 +16,7 @@ impl AFile {
 }
 
 impl GNode for AFile {
-    fn build(&self, sandbox: &PathBuf, predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
+    fn build(&self, sandbox: &Path, predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
         let inputs: Vec<PathBuf> = predecessors
             .iter()
             .map(|p| sandbox.join(p.pathbuf()))
@@ -29,7 +29,7 @@ impl GNode for AFile {
             cmd.arg(input);
         }
 
-        info!("Running: {:?}", cmd);
+        info!("Running: {cmd:?}");
 
         match cmd.status() {
             Ok(status) => status.success(),

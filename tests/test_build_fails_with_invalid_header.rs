@@ -42,7 +42,7 @@ fn test_build_fails_with_invalid_header() {
     let add_h_content = std::fs::read_to_string("demo_projects/project_1/add.h").unwrap();
     std::fs::write(
         srcdir_path.join("project_1/add.h"),
-        format!("{}xzz", add_h_content),
+        format!("{add_h_content}xzz"),
     )
     .unwrap();
 

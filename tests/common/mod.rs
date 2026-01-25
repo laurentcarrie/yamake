@@ -3,7 +3,7 @@
 //! This module provides simple implementations of `GNode` and `GRootNode` traits
 //! for use in tests that don't require actual file compilation.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use yamake::model::{GNode, GRootNode};
 
 /// A mock source file node for testing graph construction.
@@ -38,7 +38,7 @@ pub struct TargetFile {
 }
 
 impl GNode for TargetFile {
-    fn build(&self, _sandbox: &PathBuf, predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
+    fn build(&self, _sandbox: &Path, predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
         let _inputs: Vec<String> = predecessors.iter().map(|p| p.id()).collect();
         true
     }
