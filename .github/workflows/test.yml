@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run cargo fmt
-        run: ( cd yamake && cargo fmt --all -- --check )
+        run: cargo fmt --all -- --check
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -21,9 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build binaries in "${{ matrix.BUILD_TARGET }}" mode
-        run: ( cd yamake && cargo build --profile ${{ matrix.BUILD_TARGET }} )
+        run: cargo build --profile ${{ matrix.BUILD_TARGET }}
       - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
-        run: ( cd yamake && cargo test --profile ${{ matrix.BUILD_TARGET }} )
+        run: cargo test --profile ${{ matrix.BUILD_TARGET }}
   dry-publish:
     runs-on: ubuntu-latest
     steps:
@@ -31,11 +31,8 @@ jobs:
       - name: publish dry run to test validity of package
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          ( cd yamake && cargo publish --dry-run )
+        run: cargo publish --dry-run
       - name: install cargo show
-        run: |
-          cargo install cargo-show
+        run: cargo install cargo-show
       - name: test version
-        run: |
-          ./tools/check-public-version.sh
+        run: ./tools/check-public-version.sh

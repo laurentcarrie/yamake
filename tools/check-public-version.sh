@@ -3,7 +3,7 @@
 here=$(dirname $(realpath $0))
 root=$(dirname $here)
 
-local_version=$(cat $root/yamake/Cargo.toml | grep "^version")
+local_version=$(cat $root/Cargo.toml | grep "^version")
 local_major=$(($(echo $local_version | sed "s/.*\"\(.*\)\.\(.*\)\.\(.*\)\"/\1/")))
 local_minor=$(($(echo $local_version | sed "s/.*\"\(.*\)\.\(.*\)\.\(.*\)\"/\2/")))
 local_micro=$(($(echo $local_version | sed "s/.*\"\(.*\)\.\(.*\)\.\(.*\)\"/\3/")))

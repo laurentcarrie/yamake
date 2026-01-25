@@ -12,5 +12,4 @@ jobs:
       - name: publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          ( cd yamake && cargo publish )
+        run: cargo publish
