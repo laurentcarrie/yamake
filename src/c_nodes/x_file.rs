@@ -17,15 +17,28 @@ impl XFile {
 
 impl GNode for XFile {
     fn build(&self, sandbox: &PathBuf, predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
-        let inputs: Vec<PathBuf> = predecessors
-            .iter()
-            .map(|p| sandbox.join(p.pathbuf()))
-            .collect();
+        // Separate object files and libraries - libraries must come last for Linux linker
+        let mut objects: Vec<PathBuf> = Vec::new();
+        let mut libraries: Vec<PathBuf> = Vec::new();
+
+        for p in predecessors {
+            let path = sandbox.join(p.pathbuf());
+            if p.tag() == "AFile" {
+                libraries.push(path);
+            } else {
+                objects.push(path);
+            }
+        }
 
         let mut cmd = Command::new("gcc");
         cmd.arg("-o").arg(sandbox.join(&self.name));
-        for input in &inputs {
-            cmd.arg(input);
+
+        // Add object files first, then libraries
+        for obj in &objects {
+            cmd.arg(obj);
+        }
+        for lib in &libraries {
+            cmd.arg(lib);
         }
 
         info!("Running: {:?}", cmd);

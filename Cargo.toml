@@ -5,7 +5,7 @@ edition = "2024"
 description="yet another make tool."
 license = "MIT OR Apache-2.0"
 repository="https://github.com/laurentcarrie/yamake"
-readme="../README.md"
+readme="README.md"
 
 
 
