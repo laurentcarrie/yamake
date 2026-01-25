@@ -26,7 +26,6 @@ fn test_construct_and_make() {
         .unwrap();
     let target = g
         .add_node(TargetFile {
-            name: "output.txt".to_string(),
             path: PathBuf::from("output.txt"),
         })
         .unwrap();

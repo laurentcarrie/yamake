@@ -42,14 +42,12 @@ pub struct OutputInfo {
 
 #[derive(Debug)]
 pub enum GraphError {
-    DuplicateId(String),
     DuplicatePathBuf(PathBuf),
 }
 
 impl fmt::Display for GraphError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GraphError::DuplicateId(id) => write!(f, "Duplicate node id: {id}"),
             GraphError::DuplicatePathBuf(path) => write!(f, "Duplicate node pathbuf: {path:?}"),
         }
     }
@@ -57,9 +55,10 @@ impl fmt::Display for GraphError {
 
 impl std::error::Error for GraphError {}
 
+// ANCHOR: GNode
 pub trait GNode: Send + Sync {
     fn build(&self, _sandbox: &Path, _predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
-        panic!("build not implemented for {}", self.id())
+        panic!("build not implemented for {}", self.pathbuf().display())
     }
     fn scan(
         &self,
@@ -68,24 +67,21 @@ pub trait GNode: Send + Sync {
     ) -> Vec<PathBuf> {
         Vec::new()
     }
-    fn id(&self) -> String;
     fn tag(&self) -> String;
     fn pathbuf(&self) -> PathBuf;
 }
+// ANCHOR_END: GNode
 
+// ANCHOR: GRootNode
 pub trait GRootNode {
-    fn id(&self) -> String;
     fn tag(&self) -> String;
     fn pathbuf(&self) -> PathBuf;
 }
+// ANCHOR_END: GRootNode
 
 impl<T: GRootNode + Send + Sync> GNode for T {
     fn build(&self, _sandbox: &Path, _predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
         true
-    }
-
-    fn id(&self) -> String {
-        GRootNode::id(self)
     }
 
     fn tag(&self) -> String {
@@ -114,11 +110,8 @@ impl G {
         }
     }
 
-    fn check_duplicate(&self, id: &str, pathbuf: &PathBuf) -> Result<(), GraphError> {
+    fn check_duplicate(&self, pathbuf: &PathBuf) -> Result<(), GraphError> {
         for node in self.g.node_weights() {
-            if node.id() == id {
-                return Err(GraphError::DuplicateId(id.to_string()));
-            }
             if node.pathbuf() == *pathbuf {
                 return Err(GraphError::DuplicatePathBuf(pathbuf.clone()));
             }
@@ -130,7 +123,7 @@ impl G {
         &mut self,
         node: N,
     ) -> Result<NodeIndex, GraphError> {
-        self.check_duplicate(&node.id(), &node.pathbuf())?;
+        self.check_duplicate(&node.pathbuf())?;
         let idx = self.g.add_node(Box::new(node));
         self.nodes_status.insert(idx, GNodeStatus::Initial);
         Ok(idx)
@@ -140,7 +133,7 @@ impl G {
         &mut self,
         node: N,
     ) -> Result<NodeIndex, GraphError> {
-        self.check_duplicate(&GNode::id(&node), &GNode::pathbuf(&node))?;
+        self.check_duplicate(&GNode::pathbuf(&node))?;
         let idx = self.g.add_node(Box::new(node));
         self.nodes_status.insert(idx, GNodeStatus::Initial);
         Ok(idx)

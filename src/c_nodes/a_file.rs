@@ -32,10 +32,6 @@ impl GNode for AFile {
         run_command(&mut cmd, sandbox, &self.name)
     }
 
-    fn id(&self) -> String {
-        self.name.clone()
-    }
-
     fn tag(&self) -> String {
         "AFile".to_string()
     }

@@ -32,8 +32,11 @@ fn main() {
 
     let args: Args = argh::from_env();
 
+    let srcdir=args.src ;
+    let sandbox=args.sandbox ;
+
     // ANCHOR: instanciate
-    let mut g = G::new(args.src, args.sandbox);
+    let mut g = G::new(srcdir, sandbox);
     // ANCHOR_END: instanciate
 
     // ANCHOR: add_nodes

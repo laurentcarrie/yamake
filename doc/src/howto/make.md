@@ -15,15 +15,40 @@ Running the make command:
 
 ## Build output
 
-After the build, `<sandbox>/make-output.yml` contains the status and digest for each node:
+After the build, `<sandbox>/make-output.yml` contains detailed information for each node:
 
 ```yaml
 - pathbuf: project_1/main.c
   status: MountedNotChanged
   digest: 5ebac2a26d27840f79382655e1956b0fc639cbdca5643abaf746f6e557ad39b8
+  absolute_path: /path/to/sandbox/project_1/main.c
+  stdout_path: null
+  stderr_path: null
+  predecessors: []
 - pathbuf: project_1/main.o
   status: BuildNotRequired
   digest: ec1a9daf9c963db29ba4557660e3967a6eeb38dab5372e459d3a1be446c38417
+  absolute_path: /path/to/sandbox/project_1/main.o
+  stdout_path: /path/to/sandbox/logs/project_1/main.o.stdout
+  stderr_path: /path/to/sandbox/logs/project_1/main.o.stderr
+  predecessors:
+  - pathbuf: project_1/main.c
+    status: MountedNotChanged
+  - pathbuf: project_1/wrapper.h
+    status: MountedNotChanged
+```
+
+## Build logs
+
+Build commands capture stdout and stderr to log files in `<sandbox>/logs/`:
+
+- `<sandbox>/logs/<node>.stdout` - standard output
+- `<sandbox>/logs/<node>.stderr` - standard error
+
+The first line of each log file contains the command that was executed:
+
+```
+"gcc" "-c" "-I" "sandbox" "-o" "sandbox/project_1/main.o" "sandbox/project_1/main.c"
 ```
 
 ## Incremental builds

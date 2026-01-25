@@ -16,13 +16,11 @@ fn test_duplicate_pathbuf_error() {
     let mut g = G::new(PathBuf::from("src"), PathBuf::from("build"));
 
     g.add_node(TargetFile {
-        name: "node1".to_string(),
         path: PathBuf::from("same/path.txt"),
     })
     .unwrap();
 
     let result = g.add_node(TargetFile {
-        name: "node2".to_string(),
         path: PathBuf::from("same/path.txt"),
     });
 

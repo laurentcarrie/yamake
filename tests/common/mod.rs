@@ -15,10 +15,6 @@ pub struct SourceFile {
 }
 
 impl GRootNode for SourceFile {
-    fn id(&self) -> String {
-        self.name.clone()
-    }
-
     fn tag(&self) -> String {
         "SourceFile".to_string()
     }
@@ -33,18 +29,13 @@ impl GRootNode for SourceFile {
 /// Implements `GNode` to represent a build target. The `build()` method
 /// always succeeds without producing any actual output.
 pub struct TargetFile {
-    pub name: String,
     pub path: PathBuf,
 }
 
 impl GNode for TargetFile {
     fn build(&self, _sandbox: &Path, predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
-        let _inputs: Vec<String> = predecessors.iter().map(|p| p.id()).collect();
+        let _inputs: Vec<PathBuf> = predecessors.iter().map(|p| p.pathbuf()).collect();
         true
-    }
-
-    fn id(&self) -> String {
-        self.name.clone()
     }
 
     fn tag(&self) -> String {

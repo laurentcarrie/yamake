@@ -102,10 +102,6 @@ impl GNode for OFile {
         result
     }
 
-    fn id(&self) -> String {
-        self.name.clone()
-    }
-
     fn tag(&self) -> String {
         "OFile".to_string()
     }

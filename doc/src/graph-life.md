@@ -22,53 +22,46 @@ info
 title: graph life cycle
 ---
 
-flowchart 
+flowchart
 
 start@{ shape: f-circ}
 
-start --> mount:::action
+start --> reset[Reset statuses
+to Initial]:::action
 
-mount --> decision_mount
+reset --> load_digests[Load previous
+make-output.yml]:::action
 
+load_digests --> mount[Mount root nodes]:::action
 
+mount --> decision_mount{mount
+success ?}:::choice
 
-decision_mount{
-    mount
-    success ?
-}:::choice
+decision_mount -- no --> mount_failure[MountedFailed]:::ko
 
-decision_mount -- no --> failure
+decision_mount -- yes --> scan[Scan for
+dependencies]:::action
 
-failure[
-    failure
-]:::ko
+scan --> decision_new_roots{new roots
+discovered ?}:::choice
 
-decision_mount -- yes --> expand:::action
+decision_new_roots -- yes --> mount
 
-decision_graph_changed{
-    graph
-    changed ?
-}:::choice
+decision_new_roots -- no --> build_loop[Build nodes
+in parallel]:::action
 
-expand --> decision_graph_changed
+build_loop --> decision_build{all builds
+success ?}:::choice
 
-decision_graph_changed -- yes --> mount
+decision_build -- yes --> save_output[Save
+make-output.yml]:::action
+decision_build -- no --> save_output
 
-decision_graph_changed -- no --> build_not_changed
-build_not_changed[build]:::action
+save_output --> decision_final{any
+failures ?}:::choice
 
-decision_build{
-    build
-    success ?
-}:::choice
-
-build_not_changed --> decision_build
-
-decision_build -- yes --> build_ok
-build_ok[success]:::ok
-
-decision_build -- no --> build_failure
-build_failure[failure]:::ko
+decision_final -- no --> success[Success]:::ok
+decision_final -- yes --> failure[Failure]:::ko
 
 
 classDef ko fill:#f00,color:white,font-weight:bold,stroke-width:2px,stroke:yellow

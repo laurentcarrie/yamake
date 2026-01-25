@@ -17,6 +17,7 @@ impl XFile {
 
 impl GNode for XFile {
     fn build(&self, sandbox: &Path, predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
+        // ANCHOR: tag-usage
         // Separate object files and libraries - libraries must come last for Linux linker
         let mut objects: Vec<PathBuf> = Vec::new();
         let mut libraries: Vec<PathBuf> = Vec::new();
@@ -29,6 +30,7 @@ impl GNode for XFile {
                 objects.push(path);
             }
         }
+        // ANCHOR_END: tag-usage
 
         let mut cmd = Command::new("gcc");
         cmd.arg("-o").arg(sandbox.join(&self.name));
@@ -42,10 +44,6 @@ impl GNode for XFile {
         }
 
         run_command(&mut cmd, sandbox, &self.name)
-    }
-
-    fn id(&self) -> String {
-        self.name.clone()
     }
 
     fn tag(&self) -> String {

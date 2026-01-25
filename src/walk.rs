@@ -92,7 +92,7 @@ impl G {
                 };
 
                 if let Err(e) = mount(&self.srcdir, &self.sandbox, &node.pathbuf()) {
-                    error!("Failed to mount {}: {}", node.id(), e);
+                    error!("Failed to mount {}: {}", node.pathbuf().display(), e);
                     self.nodes_status
                         .insert(node_idx, GNodeStatus::MountedFailed);
                     return false;
@@ -196,7 +196,7 @@ impl G {
                                 | Some(GNodeStatus::AncestorFailed)
                         ),
                         "Predecessor {} has unexpected status {:?}",
-                        self.g[pred_idx].id(),
+                        self.g[pred_idx].pathbuf().display(),
                         pred_status
                     );
                 }
@@ -338,8 +338,7 @@ impl G {
 
             // Compute absolute paths
             let absolute_path = file_path.canonicalize().ok();
-            let node_id = node.id();
-            let log_base = self.sandbox.join("logs").join(&node_id);
+            let log_base = self.sandbox.join("logs").join(node.pathbuf());
             let stdout_file = log_base.with_file_name(format!(
                 "{}.stdout",
                 log_base.file_name().unwrap_or_default().to_string_lossy()

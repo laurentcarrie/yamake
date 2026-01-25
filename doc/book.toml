@@ -42,6 +42,8 @@ additional-css = ["theme/css/custom.css"]
 
 #[preprocessor.emojicodes]
 
+[preprocessor.mermaid]
+
 # [preprocessor.mermaid-animate]
 # after=["mermaid"]
 # optional = true

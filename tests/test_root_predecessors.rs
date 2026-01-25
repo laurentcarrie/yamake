@@ -45,29 +45,29 @@ fn test_root_predecessors_excludes_unrelated() {
 
     // Get root predecessors of main.o
     let roots = g.root_predecessors(main_o);
-    let root_ids: Vec<String> = roots.iter().map(|&idx| g.g[idx].id()).collect();
+    let root_paths: Vec<PathBuf> = roots.iter().map(|&idx| g.g[idx].pathbuf()).collect();
 
     // main.c should be in the root predecessors
     assert!(
-        root_ids.contains(&"project_1/main.c".to_string()),
+        root_paths.contains(&PathBuf::from("project_1/main.c")),
         "main.c should be a root predecessor of main.o"
     );
 
     // wrapper.h should be in the root predecessors
     assert!(
-        root_ids.contains(&"project_1/wrapper.h".to_string()),
+        root_paths.contains(&PathBuf::from("project_1/wrapper.h")),
         "wrapper.h should be a root predecessor of main.o"
     );
 
     // add.h should be in the root predecessors (via wrapper.h)
     assert!(
-        root_ids.contains(&"project_1/add.h".to_string()),
+        root_paths.contains(&PathBuf::from("project_1/add.h")),
         "add.h should be a root predecessor of main.o"
     );
 
     // add.c should NOT be in the root predecessors of main.o
     assert!(
-        !root_ids.contains(&"project_1/add.c".to_string()),
+        !root_paths.contains(&PathBuf::from("project_1/add.c")),
         "add.c should NOT be a root predecessor of main.o"
     );
 

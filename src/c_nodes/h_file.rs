@@ -14,10 +14,6 @@ impl HFile {
 }
 
 impl GRootNode for HFile {
-    fn id(&self) -> String {
-        self.name.clone()
-    }
-
     fn tag(&self) -> String {
         "HFile".to_string()
     }

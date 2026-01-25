@@ -17,6 +17,13 @@ All notable changes to this project will be documented in this file.
   - `pathbuf`: File path relative to sandbox
   - `status`: Final node status after build
   - `digest`: SHA256 hash of file contents (or null if file doesn't exist)
+  - `absolute_path`: Absolute path to the output file
+  - `stdout_path`: Absolute path to stdout log file (null for source files)
+  - `stderr_path`: Absolute path to stderr log file (null for source files)
+  - `predecessors`: List of predecessor nodes with their pathbuf and status
+- **Build logging**: stdout and stderr captured to `<sandbox>/logs/<node>.stdout` and `<sandbox>/logs/<node>.stderr`
+  - Command echoed as first line in both log files
+- **OFile compile_flags**: `OFile::new()` now accepts `include_paths` and `compile_flags` parameters
 - **root_predecessors() function**: Returns all root nodes in a node's predecessor tree
 
 ### Changed

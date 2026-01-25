@@ -49,7 +49,7 @@ fn test_incremental_build_unchanged() {
             status,
             Some(&GNodeStatus::MountedNotChanged),
             "Root node {} should be MountedNotChanged, got {:?}",
-            g.g[idx].id(),
+            g.g[idx].pathbuf().display(),
             status
         );
     }
@@ -62,7 +62,7 @@ fn test_incremental_build_unchanged() {
             status,
             Some(&GNodeStatus::BuildNotRequired),
             "Built node {} should be BuildNotRequired, got {:?}",
-            g.g[idx].id(),
+            g.g[idx].pathbuf().display(),
             status
         );
     }

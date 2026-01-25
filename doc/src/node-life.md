@@ -144,10 +144,28 @@ Digests (SHA256 hashes) of nodes are stored in `make-output.yml` in the sandbox.
 - pathbuf: project_1/main.c
   status: MountedNotChanged
   digest: 5ebac2a26d27840f79382655e1956b0fc639cbdca5643abaf746f6e557ad39b8
+  absolute_path: /path/to/sandbox/project_1/main.c
+  stdout_path: null
+  stderr_path: null
+  predecessors: []
 - pathbuf: project_1/main.o
   status: BuildNotRequired
   digest: ec1a9daf9c963db29ba4557660e3967a6eeb38dab5372e459d3a1be446c38417
+  absolute_path: /path/to/sandbox/project_1/main.o
+  stdout_path: /path/to/sandbox/logs/project_1/main.o.stdout
+  stderr_path: /path/to/sandbox/logs/project_1/main.o.stderr
+  predecessors:
+  - pathbuf: project_1/main.c
+    status: MountedNotChanged
 ```
+
+Each entry includes:
+- `pathbuf`: Relative path to the file
+- `status`: Final node status after build
+- `digest`: SHA256 hash of file contents
+- `absolute_path`: Absolute path to the output file
+- `stdout_path` / `stderr_path`: Paths to build log files (null for source files)
+- `predecessors`: List of direct predecessors with their status
 
 On subsequent builds, digests are compared to determine if files have changed:
 - **Source files**: Compared before mounting to set `MountedChanged` or `MountedNotChanged`
