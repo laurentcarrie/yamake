@@ -45,7 +45,11 @@ impl GNode for TargetFile {
         self.path.clone()
     }
 
-    fn build(&self, _sandbox: &std::path::Path, _predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
+    fn build(
+        &self,
+        _sandbox: &std::path::Path,
+        _predecessors: &[&(dyn GNode + Send + Sync)],
+    ) -> bool {
         true
     }
 }

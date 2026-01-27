@@ -1,0 +1,72 @@
+delay: 1000
+auto-start: true
+min-frame: 1
+max-frame: 2
+tags:
+  - ac
+  - bc
+  - cc
+  - ao
+  - bo
+  - co
+  - econfa
+  - econfb
+  - econfc
+  - eacao
+  - ebcbo
+  - eccco
+  - ealib
+  - eblib
+  - eclib
+variants:
+  - name: active_node
+    value: 'class {tag} class_active_node;'
+  - name: expanded_node
+    value: 'class {tag} class_expanded_node;'
+  - name: hidden_node
+    value: 'class {tag} class_hidden_node;'
+  - name: active_edge
+    value: 'class {tag} class_active_edge;'
+  - name: hidden_edge
+    value: 'class {tag} class_hidden_edge;'
+  - name: expanded_edge
+    value: 'class {tag} class_expanded_edge;'
+
+frames:
+  - title: |
+      <p style="background-color:FireBrick;color:GreenYellow">initial graph</p>
+    toggles:
+      - ac@hidden_node
+      - bc@hidden_node
+      - cc@hidden_node
+      - ao@hidden_node
+      - bo@hidden_node
+      - co@hidden_node
+      - econfa@hidden_edge
+      - econfb@hidden_edge
+      - econfc@hidden_edge
+      - eacao@hidden_edge
+      - ebcbo@hidden_edge
+      - eccco@hidden_edge
+      - ealib@hidden_edge
+      - eblib@hidden_edge
+      - eclib@hidden_edge
+
+  - title: |
+      <p style="background-color:aquamarine;color:black">after expansion</p>
+    toggles:
+      - ac@expanded_node
+      - bc@expanded_node
+      - cc@expanded_node
+      - ao@expanded_node
+      - bo@expanded_node
+      - co@expanded_node
+      - econfa@expanded_edge
+      - econfb@expanded_edge
+      - econfc@expanded_edge
+      - eacao@active_edge
+      - ebcbo@active_edge
+      - eccco@active_edge
+      - ealib@expanded_edge
+      - eblib@expanded_edge
+      - eclib@expanded_edge

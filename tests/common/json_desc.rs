@@ -60,11 +60,7 @@ impl GNode for JsonDesc {
         true
     }
 
-    fn expand(
-        &self,
-        sandbox: &Path,
-        _predecessors: &[&(dyn GNode + Send + Sync)],
-    ) -> ExpandResult {
+    fn expand(&self, sandbox: &Path, _predecessors: &[&(dyn GNode + Send + Sync)]) -> ExpandResult {
         let input_path = sandbox.join(&self.name);
         let json_content = fs::read_to_string(&input_path)
             .unwrap_or_else(|e| panic!("Failed to read {}: {}", input_path.display(), e));
@@ -130,7 +126,10 @@ impl GNode for JsonDesc {
         h_content.push_str("#define LANGUAGES_H\n\n");
 
         for lang in &languages {
-            h_content.push_str(&format!("#include \"project_expand/generated/{}.h\"\n", lang.language));
+            h_content.push_str(&format!(
+                "#include \"project_expand/generated/{}.h\"\n",
+                lang.language
+            ));
         }
         h_content.push_str("\n");
 

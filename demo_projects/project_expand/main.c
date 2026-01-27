@@ -4,7 +4,6 @@
 #include "project_expand/generated/languages.h"
 
 int main() {
-
     for (int i=0;i<N_languages;i++) {
         printf("%s\n", languages[i]()) ;
     }

@@ -35,7 +35,10 @@ fn test_scan_returns_missing_header() {
     let (scan_complete, result) = add_o.scan(&sandbox_path, &predecessors);
 
     // Scan is incomplete because the header doesn't exist
-    assert!(!scan_complete, "Scan should be incomplete for missing header");
+    assert!(
+        !scan_complete,
+        "Scan should be incomplete for missing header"
+    );
     // The missing header is still returned in the scan result
     assert_eq!(result, vec![PathBuf::from("foo.h")]);
 }

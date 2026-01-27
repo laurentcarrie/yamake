@@ -26,6 +26,12 @@ All notable changes to this project will be documented in this file.
 - **test_project_expand_incremental**: Adding new languages now properly triggers rebuild
 - **Clippy warnings**: Fixed uninlined format args in command.rs and model.rs
 
+### Documentation
+- Added new documentation pages: mount, scan, expand, build-logs, timestamp, capture-error, generate-makefile
+- Added recursive Makefile example and comparison
+- Reorganized SUMMARY.md with improved structure
+- Added examples for project_C and project_expand
+
 ## [0.1.5]
 
 ### Added

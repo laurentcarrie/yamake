@@ -24,5 +24,8 @@ fn test_duplicate_id_error() {
     });
 
     assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), GraphError::DuplicatePathBuf(_)));
+    assert!(matches!(
+        result.unwrap_err(),
+        GraphError::DuplicatePathBuf(_)
+    ));
 }

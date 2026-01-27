@@ -4,13 +4,13 @@
 
 mod common;
 
+use common::{JsonDesc, YmlDesc};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tempdir::TempDir;
 use yamake::c_nodes::{AFile, CFile, HFile, OFile, XFile};
 use yamake::model::G;
-use common::{JsonDesc, YmlDesc};
 
 /// Helper to recursively copy a directory
 fn copy_dir_recursive(src: &Path, dst: &Path) {
@@ -31,14 +31,26 @@ fn copy_dir_recursive(src: &Path, dst: &Path) {
 fn create_graph(srcdir: &Path, sandbox_path: &Path) -> G {
     let mut g = G::new(srcdir.to_path_buf(), sandbox_path.to_path_buf());
 
-    let main_c = g.add_root_node(CFile::new("project_expand/main.c")).unwrap();
-    let main_o = g.add_node(OFile::new("project_expand/main.o", vec![], vec![])).unwrap();
-    let _wrapper_h = g.add_root_node(HFile::new("project_expand/wrapper.h")).unwrap();
+    let main_c = g
+        .add_root_node(CFile::new("project_expand/main.c"))
+        .unwrap();
+    let main_o = g
+        .add_node(OFile::new("project_expand/main.o", vec![], vec![]))
+        .unwrap();
+    let _wrapper_h = g
+        .add_root_node(HFile::new("project_expand/wrapper.h"))
+        .unwrap();
     let app = g.add_node(XFile::new("project_expand/app")).unwrap();
 
-    let languages_yml = g.add_root_node(YmlDesc::new("project_expand/languages.yml")).unwrap();
-    let languages_json = g.add_node(JsonDesc::new("project_expand/languages.json")).unwrap();
-    let liblangs = g.add_node(AFile::new("project_expand/generated/liblangs.a")).unwrap();
+    let languages_yml = g
+        .add_root_node(YmlDesc::new("project_expand/languages.yml"))
+        .unwrap();
+    let languages_json = g
+        .add_node(JsonDesc::new("project_expand/languages.json"))
+        .unwrap();
+    let liblangs = g
+        .add_node(AFile::new("project_expand/generated/liblangs.a"))
+        .unwrap();
 
     g.add_edge(main_c, main_o);
     g.add_edge(main_o, app);
@@ -74,12 +86,19 @@ fn test_project_expand_deleted_lib() {
 
     // Verify the executable works
     let app_path = sandbox_path.join("project_expand/app");
-    assert!(app_path.exists(), "Executable should exist at {:?}", app_path);
+    assert!(
+        app_path.exists(),
+        "Executable should exist at {:?}",
+        app_path
+    );
     let output = Command::new(&app_path)
         .output()
         .expect("Failed to run the built executable");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Hello, World!"), "First build output should contain 'Hello, World!'");
+    assert!(
+        stdout.contains("Hello, World!"),
+        "First build output should contain 'Hello, World!'"
+    );
 
     // Delete the static library
     fs::remove_file(&lib_path).expect("Failed to delete liblangs.a");
@@ -104,6 +123,12 @@ fn test_project_expand_deleted_lib() {
     );
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Hello, World!"), "Second build output should contain 'Hello, World!'");
-    assert!(stdout.contains("Bonjour"), "Second build output should contain 'Bonjour'");
+    assert!(
+        stdout.contains("Hello, World!"),
+        "Second build output should contain 'Hello, World!'"
+    );
+    assert!(
+        stdout.contains("Bonjour"),
+        "Second build output should contain 'Bonjour'"
+    );
 }

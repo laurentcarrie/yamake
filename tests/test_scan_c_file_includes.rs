@@ -23,7 +23,11 @@ fn test_scan_c_file_includes() {
     std::fs::write(sandbox_path.join("project_C/add.c"), add_c_content).unwrap();
 
     // Create add.h
-    std::fs::write(sandbox_path.join("project_C/add.h"), "int add(int a, int b);").unwrap();
+    std::fs::write(
+        sandbox_path.join("project_C/add.h"),
+        "int add(int a, int b);",
+    )
+    .unwrap();
 
     // Create the nodes
     let add_c = CFile::new("project_C/add.c");

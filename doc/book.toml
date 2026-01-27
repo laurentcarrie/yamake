@@ -15,8 +15,8 @@ title = "yamake"
 create-missing = true
 
 
-# [preprocessor.toc]
-# command = "mdbook-toc"
+[preprocessor.toc]
+command = "mdbook-toc"
 # optional = true
 
 [output.html]
@@ -44,6 +44,5 @@ additional-css = ["theme/css/custom.css"]
 
 [preprocessor.mermaid]
 
-# [preprocessor.mermaid-animate]
-# after=["mermaid"]
-# optional = true
+[preprocessor.mermaid-animate]
+after=["mermaid"]

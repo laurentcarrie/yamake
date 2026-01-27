@@ -9,13 +9,13 @@
 
 mod common;
 
+use common::{JsonDesc, Language, YmlDesc};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tempdir::TempDir;
 use yamake::c_nodes::{AFile, CFile, HFile, OFile, XFile};
 use yamake::model::G;
-use common::{JsonDesc, Language, YmlDesc};
 
 /// Helper to recursively copy a directory
 fn copy_dir_recursive(src: &Path, dst: &Path) {
@@ -36,14 +36,26 @@ fn copy_dir_recursive(src: &Path, dst: &Path) {
 fn create_graph(srcdir: &Path, sandbox_path: &Path) -> G {
     let mut g = G::new(srcdir.to_path_buf(), sandbox_path.to_path_buf());
 
-    let main_c = g.add_root_node(CFile::new("project_expand/main.c")).unwrap();
-    let main_o = g.add_node(OFile::new("project_expand/main.o", vec![], vec![])).unwrap();
-    let _wrapper_h = g.add_root_node(HFile::new("project_expand/wrapper.h")).unwrap();
+    let main_c = g
+        .add_root_node(CFile::new("project_expand/main.c"))
+        .unwrap();
+    let main_o = g
+        .add_node(OFile::new("project_expand/main.o", vec![], vec![]))
+        .unwrap();
+    let _wrapper_h = g
+        .add_root_node(HFile::new("project_expand/wrapper.h"))
+        .unwrap();
     let app = g.add_node(XFile::new("project_expand/app")).unwrap();
 
-    let languages_yml = g.add_root_node(YmlDesc::new("project_expand/languages.yml")).unwrap();
-    let languages_json = g.add_node(JsonDesc::new("project_expand/languages.json")).unwrap();
-    let liblangs = g.add_node(AFile::new("project_expand/generated/liblangs.a")).unwrap();
+    let languages_yml = g
+        .add_root_node(YmlDesc::new("project_expand/languages.yml"))
+        .unwrap();
+    let languages_json = g
+        .add_node(JsonDesc::new("project_expand/languages.json"))
+        .unwrap();
+    let liblangs = g
+        .add_node(AFile::new("project_expand/generated/liblangs.a"))
+        .unwrap();
 
     g.add_edge(main_c, main_o);
     g.add_edge(main_o, app);
@@ -83,7 +95,10 @@ fn test_project_expand_add_language() {
         .output()
         .expect("Failed to run the built executable");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(!stdout.contains("Witaj"), "Initial output should not contain Polish");
+    assert!(
+        !stdout.contains("Witaj"),
+        "Initial output should not contain Polish"
+    );
 
     // Add Polish language to languages.yml
     let languages_yml_path = srcdir.join("project_expand/languages.yml");
@@ -93,7 +108,11 @@ fn test_project_expand_add_language() {
         language: "Polish".to_string(),
         helloworld: "Witaj, Świecie!".to_string(),
     });
-    fs::write(&languages_yml_path, serde_yaml::to_string(&languages).unwrap()).unwrap();
+    fs::write(
+        &languages_yml_path,
+        serde_yaml::to_string(&languages).unwrap(),
+    )
+    .unwrap();
 
     // Second build - should succeed and include Polish
     let mut g = create_graph(&srcdir, &sandbox_path);
@@ -111,15 +130,28 @@ fn test_project_expand_add_language() {
     );
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Hello, World!"), "Output should still contain 'Hello, World!'");
-    assert!(stdout.contains("Bonjour"), "Output should still contain 'Bonjour'");
-    assert!(stdout.contains("Witaj"), "Output should contain Polish 'Witaj'");
+    assert!(
+        stdout.contains("Hello, World!"),
+        "Output should still contain 'Hello, World!'"
+    );
+    assert!(
+        stdout.contains("Bonjour"),
+        "Output should still contain 'Bonjour'"
+    );
+    assert!(
+        stdout.contains("Witaj"),
+        "Output should contain Polish 'Witaj'"
+    );
 
     // Remove English from languages.yml
     let content = fs::read_to_string(&languages_yml_path).unwrap();
     let mut languages: Vec<Language> = serde_yaml::from_str(&content).unwrap();
     languages.retain(|lang| lang.language != "English");
-    fs::write(&languages_yml_path, serde_yaml::to_string(&languages).unwrap()).unwrap();
+    fs::write(
+        &languages_yml_path,
+        serde_yaml::to_string(&languages).unwrap(),
+    )
+    .unwrap();
 
     // Third build - should succeed without English
     let mut g = create_graph(&srcdir, &sandbox_path);
@@ -137,7 +169,16 @@ fn test_project_expand_add_language() {
     );
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(!stdout.contains("Hello, World!"), "Output should NOT contain 'Hello, World!' after removing English");
-    assert!(stdout.contains("Bonjour"), "Output should still contain 'Bonjour'");
-    assert!(stdout.contains("Witaj"), "Output should still contain Polish 'Witaj'");
+    assert!(
+        !stdout.contains("Hello, World!"),
+        "Output should NOT contain 'Hello, World!' after removing English"
+    );
+    assert!(
+        stdout.contains("Bonjour"),
+        "Output should still contain 'Bonjour'"
+    );
+    assert!(
+        stdout.contains("Witaj"),
+        "Output should still contain Polish 'Witaj'"
+    );
 }

@@ -50,17 +50,29 @@ fn scan_file_recursive(
             Some(sandbox_header)
         } else {
             // Check include paths
-            include_paths.iter()
+            include_paths
+                .iter()
                 .map(|p| p.join(&header_path))
                 .find(|p| p.exists())
         };
 
         // Recursively scan the header file if found
         if let Some(actual_path) = found_path {
-            scan_file_recursive(sandbox, &actual_path, include_re, include_paths, result, visited, scan_complete);
+            scan_file_recursive(
+                sandbox,
+                &actual_path,
+                include_re,
+                include_paths,
+                result,
+                visited,
+                scan_complete,
+            );
         } else {
             // File doesn't exist in sandbox or include paths - might be generated later
-            warn!("cannot scan missing file: {} (not in sandbox or include paths)", header_path.display());
+            warn!(
+                "cannot scan missing file: {} (not in sandbox or include paths)",
+                header_path.display()
+            );
             *scan_complete = false;
         }
     }
@@ -107,7 +119,7 @@ impl GNode for OFile {
         sandbox: &Path,
         predecessors: &[&(dyn GNode + Send + Sync)],
     ) -> (bool, Vec<PathBuf>) {
-        info!("scan {}",self.pathbuf().display()) ;
+        info!("scan {}", self.pathbuf().display());
         let mut result = Vec::new();
         let mut visited = HashSet::new();
         let mut scan_complete = true;
@@ -116,7 +128,15 @@ impl GNode for OFile {
         // Scan C files for includes
         for pred in predecessors.iter().filter(|p| p.tag() == "CFile") {
             let file_path = sandbox.join(pred.pathbuf());
-            scan_file_recursive(sandbox, &file_path, &include_re, &self.include_paths, &mut result, &mut visited, &mut scan_complete);
+            scan_file_recursive(
+                sandbox,
+                &file_path,
+                &include_re,
+                &self.include_paths,
+                &mut result,
+                &mut visited,
+                &mut scan_complete,
+            );
         }
 
         if !scan_complete {

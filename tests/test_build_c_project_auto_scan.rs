@@ -27,9 +27,21 @@ fn test_build_with_include_path() {
     // Add only C files - no HFile nodes
     // Use include_paths to find headers directly from source directory
     let main_c = g.add_root_node(CFile::new("project_C/main.c")).unwrap();
-    let main_o = g.add_node(OFile::new("project_C/main.o", include_paths.clone(), vec![])).unwrap();
+    let main_o = g
+        .add_node(OFile::new(
+            "project_C/main.o",
+            include_paths.clone(),
+            vec![],
+        ))
+        .unwrap();
     let add_c = g.add_root_node(CFile::new("project_C/add.c")).unwrap();
-    let add_o = g.add_node(OFile::new("project_C/add.o", include_paths.clone(), vec!["-DYYY_defined".to_string()])).unwrap();
+    let add_o = g
+        .add_node(OFile::new(
+            "project_C/add.o",
+            include_paths.clone(),
+            vec!["-DYYY_defined".to_string()],
+        ))
+        .unwrap();
     // Note: No HFile nodes - headers are found via -I flag
     let project_a = g.add_node(AFile::new("project_C/libproject.a")).unwrap();
     let app = g.add_node(XFile::new("project_C/app")).unwrap();
@@ -46,14 +58,14 @@ fn test_build_with_include_path() {
 
     // Build should succeed because headers are found via -I flag
     let result = g.make();
-    assert!(result, "make should return true when headers are found via -I");
+    assert!(
+        result,
+        "make should return true when headers are found via -I"
+    );
 
     // Verify the executable was built
     let app_path = sandbox_path.join("project_C/app");
-    assert!(
-        app_path.exists(),
-        "Executable should exist at {app_path:?}"
-    );
+    assert!(app_path.exists(), "Executable should exist at {app_path:?}");
 
     // Run the executable and check output
     let output = Command::new(&app_path)

@@ -42,7 +42,10 @@ fn test_scan_returns_include_path_as_specified() {
     let (scan_complete, result) = add_o.scan(&sandbox_path, &predecessors);
 
     // Scan is incomplete because add.h doesn't exist at the root (only at project_C/add.h)
-    assert!(!scan_complete, "Scan should be incomplete for wrong include path");
+    assert!(
+        !scan_complete,
+        "Scan should be incomplete for wrong include path"
+    );
     // Returns "add.h" as specified in the include, not "project_C/add.h"
     assert_eq!(result, vec![PathBuf::from("add.h")]);
 }

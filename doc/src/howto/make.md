@@ -7,34 +7,34 @@ Running the make command:
 - Compares source file digests to detect changes
 - Scans for dependencies (adds edges for `#include` directives)
 - Traverses the graph and builds output artifacts in parallel where possible
-- Saves build results to `make-output.yml`
+- Saves build results to `make-report.yml`
 
 ```rust
-{{#include ../../../examples/c_project.rs:make}}
+{{#include ../../../examples/project_C/main.rs:make}}
 ```
 
 ## Build output
 
-After the build, `<sandbox>/make-output.yml` contains detailed information for each node:
+After the build, `<sandbox>/make-report.yml` contains detailed information for each node:
 
 ```yaml
-- pathbuf: project_1/main.c
+- pathbuf: project_C/main.c
   status: MountedNotChanged
   digest: 5ebac2a26d27840f79382655e1956b0fc639cbdca5643abaf746f6e557ad39b8
-  absolute_path: /path/to/sandbox/project_1/main.c
+  absolute_path: /path/to/sandbox/project_C/main.c
   stdout_path: null
   stderr_path: null
   predecessors: []
-- pathbuf: project_1/main.o
+- pathbuf: project_C/main.o
   status: BuildNotRequired
   digest: ec1a9daf9c963db29ba4557660e3967a6eeb38dab5372e459d3a1be446c38417
-  absolute_path: /path/to/sandbox/project_1/main.o
-  stdout_path: /path/to/sandbox/logs/project_1/main.o.stdout
-  stderr_path: /path/to/sandbox/logs/project_1/main.o.stderr
+  absolute_path: /path/to/sandbox/project_C/main.o
+  stdout_path: /path/to/sandbox/logs/project_C/main.o.stdout
+  stderr_path: /path/to/sandbox/logs/project_C/main.o.stderr
   predecessors:
-  - pathbuf: project_1/main.c
+  - pathbuf: project_C/main.c
     status: MountedNotChanged
-  - pathbuf: project_1/wrapper.h
+  - pathbuf: project_C/wrapper.h
     status: MountedNotChanged
 ```
 
@@ -48,7 +48,7 @@ Build commands capture stdout and stderr to log files in `<sandbox>/logs/`:
 The first line of each log file contains the command that was executed:
 
 ```
-"gcc" "-c" "-I" "sandbox" "-o" "sandbox/project_1/main.o" "sandbox/project_1/main.c"
+"gcc" "-c" "-I" "sandbox" "-o" "sandbox/project_C/main.o" "sandbox/project_C/main.c"
 ```
 
 ## Incremental builds

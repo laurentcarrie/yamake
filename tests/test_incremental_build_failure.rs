@@ -19,9 +19,9 @@ fn test_incremental_build_with_failure() {
     let srcdir = srcdir_temp.path().to_path_buf();
     let sandbox_path = sandbox.path().to_path_buf();
 
-    // Copy demo_projects/project_1 to temp srcdir
-    let src_project = PathBuf::from("demo_projects/project_1");
-    let dst_project = srcdir.join("project_1");
+    // Copy demo_projects/project_C to temp srcdir
+    let src_project = PathBuf::from("demo_projects/project_C");
+    let dst_project = srcdir.join("project_C");
     fs::create_dir_all(&dst_project).unwrap();
     for entry in fs::read_dir(&src_project).unwrap() {
         let entry = entry.unwrap();
@@ -30,16 +30,41 @@ fn test_incremental_build_with_failure() {
         fs::copy(&src_path, &dst_path).unwrap();
     }
 
+    // Copy other-deps for project_C2/foo.h
+    let other_deps_src = PathBuf::from("demo_projects/other-deps");
+    let other_deps_dst = srcdir.join("other-deps");
+    fs::create_dir_all(other_deps_dst.join("foo/bar/project_C2")).unwrap();
+    fs::copy(
+        other_deps_src.join("foo/bar/project_C2/foo.h"),
+        other_deps_dst.join("foo/bar/project_C2/foo.h"),
+    )
+    .unwrap();
+
+    // Use absolute path for external dependencies outside the project
+    let include_paths = vec![srcdir.join("other-deps/foo/bar")];
+
     let mut g = G::new(srcdir.clone(), sandbox_path);
 
-    let main_c = g.add_root_node(CFile::new("project_1/main.c")).unwrap();
-    let main_o = g.add_node(OFile::new("project_1/main.o", vec![], vec![])).unwrap();
-    let add_c = g.add_root_node(CFile::new("project_1/add.c")).unwrap();
-    let add_o = g.add_node(OFile::new("project_1/add.o", vec![], vec!["-DYYY_defined".to_string()])).unwrap();
-    let _add_h = g.add_root_node(HFile::new("project_1/add.h")).unwrap();
-    let _wrapper_h = g.add_root_node(HFile::new("project_1/wrapper.h")).unwrap();
-    let project_a = g.add_node(AFile::new("project_1/libproject.a")).unwrap();
-    let app = g.add_node(XFile::new("project_1/app")).unwrap();
+    let main_c = g.add_root_node(CFile::new("project_C/main.c")).unwrap();
+    let main_o = g
+        .add_node(OFile::new(
+            "project_C/main.o",
+            include_paths.clone(),
+            vec![],
+        ))
+        .unwrap();
+    let add_c = g.add_root_node(CFile::new("project_C/add.c")).unwrap();
+    let add_o = g
+        .add_node(OFile::new(
+            "project_C/add.o",
+            include_paths.clone(),
+            vec!["-DYYY_defined".to_string()],
+        ))
+        .unwrap();
+    let _add_h = g.add_root_node(HFile::new("project_C/add.h")).unwrap();
+    let _wrapper_h = g.add_root_node(HFile::new("project_C/wrapper.h")).unwrap();
+    let project_a = g.add_node(AFile::new("project_C/libproject.a")).unwrap();
+    let app = g.add_node(XFile::new("project_C/app")).unwrap();
 
     g.add_edge(main_c, main_o);
     g.add_edge(main_o, app);
@@ -52,7 +77,7 @@ fn test_incremental_build_with_failure() {
     assert!(result, "First build should succeed");
 
     // Modify add.h to introduce a syntax error
-    let add_h_path = srcdir.join("project_1/add.h");
+    let add_h_path = srcdir.join("project_C/add.h");
     let content = fs::read_to_string(&add_h_path).unwrap();
     fs::write(&add_h_path, format!("{content}\nxxx\n")).unwrap();
 

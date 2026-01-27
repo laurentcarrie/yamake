@@ -10,7 +10,7 @@ see section ...
 
 in our example, for the demo add the nodes manually.
 ```rust
-{{#include ../../../examples/c_project.rs:add_nodes}}
+{{#include ../../../examples/project_C/main.rs:add_nodes}}
 ```
 
 ---
