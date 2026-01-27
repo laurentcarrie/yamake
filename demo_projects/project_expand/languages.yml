@@ -1,0 +1,10 @@
+- language: English
+  helloworld: Hello, World!
+- language: French
+  helloworld: Bonjour, le Monde!
+- language: Spanish
+  helloworld: Hola, Mundo!
+- language: German
+  helloworld: Hallo, Welt!
+- language: Japanese
+  helloworld: こんにちは、世界！

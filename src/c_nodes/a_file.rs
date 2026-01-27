@@ -17,8 +17,10 @@ impl AFile {
 
 impl GNode for AFile {
     fn build(&self, sandbox: &Path, predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
+        // Only include OFile predecessors in the archive
         let inputs: Vec<PathBuf> = predecessors
             .iter()
+            .filter(|p| p.tag() == "OFile")
             .map(|p| sandbox.join(p.pathbuf()))
             .collect();
 

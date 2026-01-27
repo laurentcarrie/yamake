@@ -1,5 +1,6 @@
 use crate::command::run_command;
 use crate::model::GNode;
+use log::{info, warn};
 use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
@@ -13,14 +14,23 @@ pub struct OFile {
 }
 
 fn scan_file_recursive(
-    srcdir: &Path,
+    sandbox: &Path,
     file_path: &Path,
     include_re: &Regex,
+    include_paths: &[PathBuf],
     result: &mut Vec<PathBuf>,
     visited: &mut HashSet<PathBuf>,
+    scan_complete: &mut bool,
 ) {
-    let content = fs::read_to_string(file_path)
-        .unwrap_or_else(|e| panic!("Failed to read {}: {}", file_path.display(), e));
+    // If file doesn't exist, mark scan as incomplete
+    let content = match fs::read_to_string(file_path) {
+        Ok(c) => c,
+        Err(_) => {
+            warn!("while scanning, file not found: {}", file_path.display());
+            *scan_complete = false;
+            return;
+        }
+    };
 
     for cap in include_re.captures_iter(&content) {
         let header = &cap[1];
@@ -31,21 +41,28 @@ fn scan_file_recursive(
             continue;
         }
 
-        let src_header = srcdir.join(&header_path);
-
-        if !src_header.exists() {
-            panic!(
-                "Header file not found: {} (looked in {})",
-                header,
-                src_header.display()
-            );
-        }
-
         visited.insert(header_path.clone());
-        result.push(header_path);
+        result.push(header_path.clone());
 
-        // Recursively scan the header file
-        scan_file_recursive(srcdir, &src_header, include_re, result, visited);
+        // Try to find the header file in sandbox or include paths
+        let sandbox_header = sandbox.join(&header_path);
+        let found_path = if sandbox_header.exists() {
+            Some(sandbox_header)
+        } else {
+            // Check include paths
+            include_paths.iter()
+                .map(|p| p.join(&header_path))
+                .find(|p| p.exists())
+        };
+
+        // Recursively scan the header file if found
+        if let Some(actual_path) = found_path {
+            scan_file_recursive(sandbox, &actual_path, include_re, include_paths, result, visited, scan_complete);
+        } else {
+            // File doesn't exist in sandbox or include paths - might be generated later
+            warn!("cannot scan missing file: {} (not in sandbox or include paths)", header_path.display());
+            *scan_complete = false;
+        }
     }
 }
 
@@ -61,9 +78,10 @@ impl OFile {
 
 impl GNode for OFile {
     fn build(&self, sandbox: &Path, predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
+        // Only include CFile predecessors as source files - headers are included via -I
         let inputs: Vec<PathBuf> = predecessors
             .iter()
-            .filter(|p| p.tag() != "HFile")
+            .filter(|p| p.tag() == "CFile")
             .map(|p| sandbox.join(p.pathbuf()))
             .collect();
 
@@ -86,20 +104,26 @@ impl GNode for OFile {
 
     fn scan(
         &self,
-        srcdir: &Path,
+        sandbox: &Path,
         predecessors: &[&(dyn GNode + Send + Sync)],
-    ) -> Vec<PathBuf> {
+    ) -> (bool, Vec<PathBuf>) {
+        info!("scan {}",self.pathbuf().display()) ;
         let mut result = Vec::new();
         let mut visited = HashSet::new();
+        let mut scan_complete = true;
         let include_re = Regex::new(r#"(?m)^\s*#include\s+"([^"]+)""#).unwrap();
 
         // Scan C files for includes
         for pred in predecessors.iter().filter(|p| p.tag() == "CFile") {
-            let file_path = srcdir.join(pred.pathbuf());
-            scan_file_recursive(srcdir, &file_path, &include_re, &mut result, &mut visited);
+            let file_path = sandbox.join(pred.pathbuf());
+            scan_file_recursive(sandbox, &file_path, &include_re, &self.include_paths, &mut result, &mut visited, &mut scan_complete);
         }
 
-        result
+        if !scan_complete {
+            info!("scan incomplete for {}", self.pathbuf().display());
+        }
+
+        (scan_complete, result)
     }
 
     fn tag(&self) -> String {

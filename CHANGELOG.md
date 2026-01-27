@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-01-27
+
+### Added
+- **ScanIncomplete node status**: New status for nodes waiting on dependencies to be generated
+  - Nodes are marked `ScanIncomplete` when scanned files don't exist or haven't been generated yet
+  - Build waits for expand operations to complete before proceeding
+- **Orphan sandbox file detection**: Detects files from previous expand runs that may need updating
+  - Prevents building with stale generated headers during incremental builds
+- **scan() return type change**: Now returns `(bool, Vec<PathBuf>)` tuple
+  - First element indicates if scan is complete (all files found)
+  - Second element is the list of discovered dependencies
+- **Expanded nodes added to built set**: Files created by expand are immediately available as dependencies
+
+### Changed
+- **Build ordering with expand**: Nodes depending on generated files wait for expand to run first
+- **Include path scanning**: Scan now checks include_paths for headers before marking incomplete
+
+### Fixed
+- **Incremental builds with expand**: Fixed issue where nodes would build with stale generated headers
+- **test_project_expand_incremental**: Adding new languages now properly triggers rebuild
+
+## [0.1.5]
+
 ### Added
 - **Incremental build support**: Build system now tracks file digests and node statuses to avoid unnecessary rebuilds
 - **OutputInfo structure**: New data structure containing pathbuf, status, and digest for each node

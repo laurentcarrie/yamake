@@ -21,6 +21,7 @@ Each node has a status that tracks its state during the build process:
 | `MountedChanged` | Source file mounted, digest changed since last build |
 | `MountedNotChanged` | Source file mounted, digest unchanged |
 | `MountedFailed` | Failed to mount source file |
+| `ScanIncomplete` | Waiting for dependencies to be generated (e.g., by expand) |
 | `Running` | Node is currently being built |
 | `BuildSuccess` | Build completed successfully with changed output |
 | `BuildNotRequired` | Build skipped (predecessors unchanged and output digest matches) |
@@ -100,11 +101,21 @@ decision_digest_changed -- no --> mounted_not_changed[MountedNotChanged]:::uncha
 
 %%% build branch
 ancestor_failed[AncestorFailed]
+scan_incomplete[ScanIncomplete]
 
 decision_all_preds_ok -- no -----> ancestor_failed:::ko
 
 
-decision_all_preds_ok -- yes --> decision_some_preds_changed
+decision_all_preds_ok -- yes --> decision_scan_complete{scan
+complete ?}:::choice
+
+decision_scan_complete -- no --> scan_incomplete:::waiting
+decision_scan_complete -- yes --> decision_some_preds_changed
+
+scan_incomplete --> decision_progress_made{progress
+made ?}:::choice
+decision_progress_made -- yes --> decision_scan_complete
+decision_progress_made -- no --> decision_some_preds_changed
 
 build:::action
 
@@ -127,6 +138,7 @@ decision_final_digest -- no --> build_not_required2[BuildNotRequired]:::unchange
 classDef ko fill:#f00,color:white,font-weight:bold,stroke-width:2px,stroke:yellow
 classDef changed fill:#0ff,color:black,font-weight:bold,stroke-width:2px,stroke:yellow
 classDef unchanged fill:#0f0,color:black,font-weight:bold,stroke-width:2px,stroke:yellow
+classDef waiting fill:#FFD700,color:black,font-weight:bold,stroke-width:2px,stroke:yellow
 
 classDef action fill:#FF8C00,color:black,font-weight:bold,stroke-width:2px,stroke:black,shape:bolt
 classDef choice fill:lavender,color:black,font-weight:bold,stroke-width:2px,stroke:red,shape: circle
@@ -141,21 +153,21 @@ classDef choice fill:lavender,color:black,font-weight:bold,stroke-width:2px,stro
 Digests (SHA256 hashes) of nodes are stored in `make-output.yml` in the sandbox. The file contains an array of `OutputInfo` entries:
 
 ```yaml
-- pathbuf: project_1/main.c
+- pathbuf: project_C/main.c
   status: MountedNotChanged
   digest: 5ebac2a26d27840f79382655e1956b0fc639cbdca5643abaf746f6e557ad39b8
-  absolute_path: /path/to/sandbox/project_1/main.c
+  absolute_path: /path/to/sandbox/project_C/main.c
   stdout_path: null
   stderr_path: null
   predecessors: []
-- pathbuf: project_1/main.o
+- pathbuf: project_C/main.o
   status: BuildNotRequired
   digest: ec1a9daf9c963db29ba4557660e3967a6eeb38dab5372e459d3a1be446c38417
-  absolute_path: /path/to/sandbox/project_1/main.o
-  stdout_path: /path/to/sandbox/logs/project_1/main.o.stdout
-  stderr_path: /path/to/sandbox/logs/project_1/main.o.stderr
+  absolute_path: /path/to/sandbox/project_C/main.o
+  stdout_path: /path/to/sandbox/logs/project_C/main.o.stdout
+  stderr_path: /path/to/sandbox/logs/project_C/main.o.stderr
   predecessors:
-  - pathbuf: project_1/main.c
+  - pathbuf: project_C/main.c
     status: MountedNotChanged
 ```
 
