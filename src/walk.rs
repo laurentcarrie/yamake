@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Mutex;
 
-use crate::model::{EdgeType, ExpandedEdgeInfo, G, GNodeStatus, MakeOutput, OutputInfo, PredecessorInfo};
+use crate::model::{G, GNodeStatus, MakeOutput, OutputInfo, PredecessorInfo};
 use crate::mount::mount;
 
 fn compute_file_digest(path: &std::path::Path) -> Option<String> {
@@ -101,8 +101,8 @@ impl G {
     }
 
     pub fn make(&mut self) -> bool {
-        // Load previous digests from make-output.yml
-        let digest_path = self.sandbox.join("make-output.yml");
+        // Load previous digests from make-report.yml
+        let digest_path = self.sandbox.join("make-report.yml");
         let previous_digests: BTreeMap<String, String> = load_make_output(&digest_path)
             .map(|output| {
                 output
@@ -182,7 +182,8 @@ impl G {
                     .map(|idx| self.g[idx].as_ref())
                     .collect();
 
-                let (scan_complete, scanned_paths) = self.g[node_idx].scan(&self.sandbox, &predecessors);
+                let (scan_complete, scanned_paths) =
+                    self.g[node_idx].scan(&self.sandbox, &predecessors);
 
                 // Add edges for scanned dependencies
                 let mut has_unbuilt_graph_dependency = false;
@@ -195,9 +196,11 @@ impl G {
 
                     if let Some(from_idx) = found_node {
                         // Check if edge already exists
-                        let edge_exists = self.g.edges_connecting(from_idx, node_idx).next().is_some();
+                        let edge_exists =
+                            self.g.edges_connecting(from_idx, node_idx).next().is_some();
                         if !edge_exists {
-                            self.g.add_edge(from_idx, node_idx, crate::model::EdgeType::Scanned);
+                            self.g
+                                .add_edge(from_idx, node_idx, crate::model::EdgeType::Scanned);
                         }
                         // Check if this dependency is not yet built
                         if !built.contains(&from_idx) {
@@ -219,9 +222,14 @@ impl G {
                 //    that could potentially generate the missing file via expand, OR
                 // 3. There's a scanned file in sandbox with no graph node (from previous expand)
                 //    AND there are other unbuilt nodes that might update it
-                let has_other_unbuilt_nodes = all_nodes.iter().any(|&idx| !built.contains(&idx) && idx != node_idx);
-                if has_unbuilt_graph_dependency || ((!scan_complete || has_orphan_sandbox_file) && has_other_unbuilt_nodes) {
-                    self.nodes_status.insert(node_idx, GNodeStatus::ScanIncomplete);
+                let has_other_unbuilt_nodes = all_nodes
+                    .iter()
+                    .any(|&idx| !built.contains(&idx) && idx != node_idx);
+                if has_unbuilt_graph_dependency
+                    || ((!scan_complete || has_orphan_sandbox_file) && has_other_unbuilt_nodes)
+                {
+                    self.nodes_status
+                        .insert(node_idx, GNodeStatus::ScanIncomplete);
                 }
             }
 
@@ -234,9 +242,7 @@ impl G {
             // Exclude nodes with incomplete scans
             let ready: Vec<NodeIndex> = potentially_ready
                 .iter()
-                .filter(|&idx| {
-                    self.nodes_status.get(idx) != Some(&GNodeStatus::ScanIncomplete)
-                })
+                .filter(|&idx| self.nodes_status.get(idx) != Some(&GNodeStatus::ScanIncomplete))
                 .filter(|&idx| {
                     self.g
                         .neighbors_directed(*idx, Direction::Incoming)
@@ -262,7 +268,9 @@ impl G {
             self.print_status();
 
             // Build ready nodes in parallel and collect results
-            let build_results: Mutex<HashMap<NodeIndex, (GNodeStatus, crate::model::ExpandResult)>> = Mutex::new(HashMap::new());
+            let build_results: Mutex<
+                HashMap<NodeIndex, (GNodeStatus, crate::model::ExpandResult)>,
+            > = Mutex::new(HashMap::new());
             ready.par_iter().for_each(|&node_idx| {
                 // Assert all predecessors are in expected states
                 let pred_indices: Vec<NodeIndex> = self
@@ -305,16 +313,18 @@ impl G {
                     if output_path.exists() {
                         let _ = std::fs::remove_file(&output_path);
                     }
-                    build_results
-                        .lock()
-                        .unwrap()
-                        .insert(node_idx, (GNodeStatus::AncestorFailed, (Vec::new(), Vec::new())));
+                    build_results.lock().unwrap().insert(
+                        node_idx,
+                        (GNodeStatus::AncestorFailed, (Vec::new(), Vec::new())),
+                    );
                     return;
                 }
 
                 // Build predecessors list for expand and build calls
-                let predecessors: Vec<&(dyn crate::model::GNode + Send + Sync)> =
-                    pred_indices.iter().map(|&idx| self.g[idx].as_ref()).collect();
+                let predecessors: Vec<&(dyn crate::model::GNode + Send + Sync)> = pred_indices
+                    .iter()
+                    .map(|&idx| self.g[idx].as_ref())
+                    .collect();
 
                 // Check if all predecessors are unchanged (BuildNotRequired or MountedNotChanged)
                 let all_predecessors_not_required = !pred_indices.is_empty()
@@ -386,7 +396,10 @@ impl G {
                 // Call expand after building
                 let expand_result = node.expand(&self.sandbox, &predecessors);
 
-                build_results.lock().unwrap().insert(node_idx, (final_status, expand_result));
+                build_results
+                    .lock()
+                    .unwrap()
+                    .insert(node_idx, (final_status, expand_result));
             });
 
             // Update status based on build results
@@ -410,18 +423,16 @@ impl G {
                 // Add expanded nodes to the graph (skip if already exists)
                 for exp_node in new_expanded_nodes {
                     let pathbuf = exp_node.pathbuf();
-                    let existing = self.g.node_indices().find(|&i| self.g[i].pathbuf() == pathbuf);
+                    let existing = self
+                        .g
+                        .node_indices()
+                        .find(|&i| self.g[i].pathbuf() == pathbuf);
                     if existing.is_none() {
                         let new_idx = self.g.add_node(exp_node);
-                        self.nodes_status.insert(new_idx, GNodeStatus::MountedChanged);
+                        self.nodes_status
+                            .insert(new_idx, GNodeStatus::MountedChanged);
                         expanded_nodes.insert(new_idx);
                         all_nodes.push(new_idx);
-                        // If the file already exists (expand created it), mark as built
-                        // so other nodes can proceed with their scanned dependencies
-                        let file_path = self.sandbox.join(&pathbuf);
-                        if file_path.exists() {
-                            built.insert(new_idx);
-                        }
                     }
                 }
 
@@ -429,8 +440,14 @@ impl G {
                 for edge in new_expanded_edges {
                     let from_pathbuf = edge.nfrom.pathbuf();
                     let to_pathbuf = edge.nto.pathbuf();
-                    let from_idx = self.g.node_indices().find(|&i| self.g[i].pathbuf() == from_pathbuf);
-                    let to_idx = self.g.node_indices().find(|&i| self.g[i].pathbuf() == to_pathbuf);
+                    let from_idx = self
+                        .g
+                        .node_indices()
+                        .find(|&i| self.g[i].pathbuf() == from_pathbuf);
+                    let to_idx = self
+                        .g
+                        .node_indices()
+                        .find(|&i| self.g[i].pathbuf() == to_pathbuf);
                     if let (Some(from), Some(to)) = (from_idx, to_idx) {
                         // Check if edge already exists
                         let edge_exists = self.g.edges_connecting(from, to).next().is_some();
@@ -495,11 +512,6 @@ impl G {
                 .collect();
 
             let expanded = expanded_nodes.contains(&node_idx);
-            let tag = if expanded {
-                Some(node.tag())
-            } else {
-                None
-            };
 
             infos.push(OutputInfo {
                 pathbuf: node.pathbuf(),
@@ -510,46 +522,30 @@ impl G {
                 stderr_path,
                 predecessors,
                 expanded,
-                tag,
+                tag: node.tag(),
             });
         }
 
         // Sort by pathbuf for consistent output
         infos.sort_by(|a, b| a.pathbuf.cmp(&b.pathbuf));
 
-        // Collect expanded edges
-        let mut expanded_edges: Vec<ExpandedEdgeInfo> = Vec::new();
-        for edge_idx in self.g.edge_indices() {
-            if let Some(edge_type) = self.g.edge_weight(edge_idx) {
-                if *edge_type == EdgeType::Expanded {
-                    if let Some((from, to)) = self.g.edge_endpoints(edge_idx) {
-                        expanded_edges.push(ExpandedEdgeInfo {
-                            from_pathbuf: self.g[from].pathbuf(),
-                            to_pathbuf: self.g[to].pathbuf(),
-                            edge_type: EdgeType::Expanded,
-                        });
-                    }
-                }
-            }
-        }
+        let output = MakeOutput { nodes: infos };
 
-        let output = MakeOutput {
-            nodes: infos,
-            expanded_edges,
-        };
-
-        let digest_path = self.sandbox.join("make-output.yml");
+        let digest_path = self.sandbox.join("make-report.yml");
         match File::create(&digest_path) {
             Ok(file) => {
                 if let Err(e) = serde_yaml::to_writer(file, &output) {
-                    error!("Failed to write make-output.yml: {e}");
+                    error!("Failed to write make-report.yml: {e}");
                 } else {
-                    info!("Saved {} nodes, {} expanded edges to {}",
-                        output.nodes.len(), output.expanded_edges.len(), digest_path.display());
+                    info!(
+                        "Saved {} nodes to {}",
+                        output.nodes.len(),
+                        digest_path.display()
+                    );
                 }
             }
             Err(e) => {
-                error!("Failed to create make-output.yml: {e}");
+                error!("Failed to create make-report.yml: {e}");
             }
         }
     }

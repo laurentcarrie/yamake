@@ -12,9 +12,15 @@ pub fn run_command(cmd: &mut Command, sandbox: &Path, node_id: &str) -> bool {
     info!("Running: {cmd:?}");
 
     // Create logs directory structure
-    let logs_dir = sandbox.join("logs").join(Path::new(node_id).parent().unwrap_or(Path::new("")));
+    let logs_dir = sandbox
+        .join("logs")
+        .join(Path::new(node_id).parent().unwrap_or(Path::new("")));
     if let Err(e) = fs::create_dir_all(&logs_dir) {
-        log::error!("Failed to create logs directory {}: {}", logs_dir.display(), e);
+        log::error!(
+            "Failed to create logs directory {}: {}",
+            logs_dir.display(),
+            e
+        );
         return false;
     }
 
@@ -32,20 +38,20 @@ pub fn run_command(cmd: &mut Command, sandbox: &Path, node_id: &str) -> bool {
         Ok(output) => {
             // Write stdout (with command as first line)
             if let Ok(mut file) = File::create(&stdout_path) {
-                let _ = writeln!(file, "{:?}", cmd);
+                let _ = writeln!(file, "{cmd:?}");
                 let _ = file.write_all(&output.stdout);
             }
 
             // Write stderr (with command as first line)
             if let Ok(mut file) = File::create(&stderr_path) {
-                let _ = writeln!(file, "{:?}", cmd);
+                let _ = writeln!(file, "{cmd:?}");
                 let _ = file.write_all(&output.stderr);
             }
 
             output.status.success()
         }
         Err(e) => {
-            log::error!("Failed to execute command: {}", e);
+            log::error!("Failed to execute command: {e}");
             false
         }
     }

@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **Incremental builds with expand**: Fixed issue where nodes would build with stale generated headers
 - **test_project_expand_incremental**: Adding new languages now properly triggers rebuild
+- **Clippy warnings**: Fixed uninlined format args in command.rs and model.rs
 
 ## [0.1.5]
 
@@ -36,7 +37,7 @@ All notable changes to this project will be documented in this file.
   - `BuildNotRequired`: Node was skipped because all predecessors are unchanged and output digest matches
   - `BuildSuccess`: Node was built successfully with changed output
   - `AncestorFailed`: Node was skipped because a predecessor failed
-- **make-output.yml format**: Now stores full build information including:
+- **make-report.yml format**: Now stores full build information including:
   - `pathbuf`: File path relative to sandbox
   - `status`: Final node status after build
   - `digest`: SHA256 hash of file contents (or null if file doesn't exist)

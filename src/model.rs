@@ -48,21 +48,12 @@ pub struct OutputInfo {
     pub predecessors: Vec<PredecessorInfo>,
     #[serde(default)]
     pub expanded: bool,
-    #[serde(default)]
-    pub tag: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExpandedEdgeInfo {
-    pub from_pathbuf: PathBuf,
-    pub to_pathbuf: PathBuf,
-    pub edge_type: EdgeType,
+    pub tag: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MakeOutput {
     pub nodes: Vec<OutputInfo>,
-    pub expanded_edges: Vec<ExpandedEdgeInfo>,
 }
 
 #[derive(Debug)]
@@ -132,11 +123,7 @@ impl<T: GRootNode + Send + Sync> GNode for T {
         true
     }
 
-    fn expand(
-        &self,
-        sandbox: &Path,
-        predecessors: &[&(dyn GNode + Send + Sync)],
-    ) -> ExpandResult {
+    fn expand(&self, sandbox: &Path, predecessors: &[&(dyn GNode + Send + Sync)]) -> ExpandResult {
         GRootNode::expand(self, sandbox, predecessors)
     }
 
@@ -259,12 +246,12 @@ impl G {
                 .is_some();
 
             let shape = if has_predecessors {
-                format!("{}[[\"{}\"]];", node_id, label) // Stadium shape for built nodes
+                format!("{node_id}[[\"{label}\"]];") // Stadium shape for built nodes
             } else {
-                format!("{}([\"{}\"])", node_id, label) // Rounded for root nodes
+                format!("{node_id}([\"{label}\"])") // Rounded for root nodes
             };
 
-            lines.push(format!("    {}", shape));
+            lines.push(format!("    {shape}"));
         }
 
         // Add style classes based on status
@@ -287,7 +274,7 @@ impl G {
                 None => "fill:#fff,stroke:#333",
             };
 
-            style_lines.push(format!("    style {} {}", node_id, style));
+            style_lines.push(format!("    style {node_id} {style}"));
         }
 
         // Add edges with different styles based on EdgeType
@@ -306,7 +293,7 @@ impl G {
                     None => "-->",
                 };
 
-                lines.push(format!("    {} {} {}", from_id, arrow, to_id));
+                lines.push(format!("    {from_id} {arrow} {to_id}"));
 
                 // Add link style for color
                 let color = match edge_type {
@@ -315,7 +302,9 @@ impl G {
                     Some(EdgeType::Expanded) => "#FF9800",
                     None => "#333",
                 };
-                link_styles.push(format!("    linkStyle {} stroke:{},stroke-width:2px", edge_index, color));
+                link_styles.push(format!(
+                    "    linkStyle {edge_index} stroke:{color},stroke-width:2px"
+                ));
                 edge_index += 1;
             }
         }
