@@ -5,6 +5,6 @@ You need to have exiting rules to construct a graph. In this example, we use exi
 see [this section](./addrules.md) for adding your own build rules.
 
 ```rust
-{{#include ../../../examples/c_project.rs:use_existing_rules}}
+{{#include ../../../examples/project_C/main.rs:use_existing_rules}}
 ```
 

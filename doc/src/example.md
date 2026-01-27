@@ -6,14 +6,14 @@
 
 Our example is a C project that we want to compile. You will find the sources of the project in [sources of the C project](https://github.com/laurentcarrie/yamake/tree/main/demo_projects).
 
-To build this project, instead of writing a Makefile, we write our own tool, using the yamake crate. You will find the sources of this tool in [sources of the demo tool](https://github.com/laurentcarrie/yamake/blob/main/examples/c_project.rs)
+To build this project, instead of writing a Makefile, we write our own tool, using the yamake crate. You will find the sources of this tool in [sources of the demo tool](https://github.com/laurentcarrie/yamake/blob/main/examples/project_C/main.rs)
 
 ---
 
 # running the example
 
 ```bash
-cargo run --example c_project -- -s demo_projects -b sandbox
+cargo run --example project_C -- -s demo_projects -b sandbox
 ```
 
 This will:

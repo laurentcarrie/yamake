@@ -18,43 +18,51 @@ fn test_build_fails_with_invalid_header() {
     let sandbox = TempDir::new("yamake_build_fail_sandbox").unwrap();
     let sandbox_path = sandbox.path().to_path_buf();
 
-    // Create project_1 directory
-    std::fs::create_dir_all(srcdir_path.join("project_1")).unwrap();
+    // Create project_C directory
+    std::fs::create_dir_all(srcdir_path.join("project_C")).unwrap();
 
-    // Copy files from demo_projects/project_1
+    // Copy files from demo_projects/project_C
     std::fs::copy(
-        "demo_projects/project_1/main.c",
-        srcdir_path.join("project_1/main.c"),
+        "demo_projects/project_C/main.c",
+        srcdir_path.join("project_C/main.c"),
     )
     .unwrap();
     std::fs::copy(
-        "demo_projects/project_1/add.c",
-        srcdir_path.join("project_1/add.c"),
+        "demo_projects/project_C/add.c",
+        srcdir_path.join("project_C/add.c"),
     )
     .unwrap();
     std::fs::copy(
-        "demo_projects/project_1/wrapper.h",
-        srcdir_path.join("project_1/wrapper.h"),
+        "demo_projects/project_C/wrapper.h",
+        srcdir_path.join("project_C/wrapper.h"),
     )
     .unwrap();
 
     // Copy add.h and append 'xzz' to cause a syntax error
-    let add_h_content = std::fs::read_to_string("demo_projects/project_1/add.h").unwrap();
+    let add_h_content = std::fs::read_to_string("demo_projects/project_C/add.h").unwrap();
     std::fs::write(
-        srcdir_path.join("project_1/add.h"),
-        format!("{}xzz", add_h_content),
+        srcdir_path.join("project_C/add.h"),
+        format!("{add_h_content}xzz"),
     )
     .unwrap();
 
     let mut g = G::new(srcdir_path, sandbox_path.clone());
 
-    let main_c = g.add_root_node(CFile::new("project_1/main.c")).unwrap();
-    let main_o = g.add_node(OFile::new("project_1/main.o")).unwrap();
-    let add_c = g.add_root_node(CFile::new("project_1/add.c")).unwrap();
-    let add_o = g.add_node(OFile::new("project_1/add.o")).unwrap();
-    let _add_h = g.add_root_node(HFile::new("project_1/add.h")).unwrap();
-    let _wrapper_h = g.add_root_node(HFile::new("project_1/wrapper.h")).unwrap();
-    let app = g.add_node(XFile::new("project_1/app")).unwrap();
+    let main_c = g.add_root_node(CFile::new("project_C/main.c")).unwrap();
+    let main_o = g
+        .add_node(OFile::new("project_C/main.o", vec![], vec![]))
+        .unwrap();
+    let add_c = g.add_root_node(CFile::new("project_C/add.c")).unwrap();
+    let add_o = g
+        .add_node(OFile::new(
+            "project_C/add.o",
+            vec![],
+            vec!["-DYYY_defined".to_string()],
+        ))
+        .unwrap();
+    let _add_h = g.add_root_node(HFile::new("project_C/add.h")).unwrap();
+    let _wrapper_h = g.add_root_node(HFile::new("project_C/wrapper.h")).unwrap();
+    let app = g.add_node(XFile::new("project_C/app")).unwrap();
 
     g.add_edge(main_c, main_o);
     g.add_edge(main_o, app);
@@ -65,7 +73,7 @@ fn test_build_fails_with_invalid_header() {
     assert!(!result, "make should return false on build failure");
 
     // The executable should not exist due to build failure
-    let app_path = sandbox_path.join("project_1/app");
+    let app_path = sandbox_path.join("project_C/app");
     assert!(
         !app_path.exists(),
         "Executable should not exist due to build failure"

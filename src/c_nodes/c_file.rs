@@ -14,10 +14,6 @@ impl CFile {
 }
 
 impl GRootNode for CFile {
-    fn id(&self) -> String {
-        self.name.clone()
-    }
-
     fn tag(&self) -> String {
         "CFile".to_string()
     }

@@ -1,6 +1,6 @@
+use crate::command::run_command;
 use crate::model::GNode;
-use log::info;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub struct AFile {
@@ -16,9 +16,11 @@ impl AFile {
 }
 
 impl GNode for AFile {
-    fn build(&self, sandbox: &PathBuf, predecessors: &[&Box<dyn GNode + Send + Sync>]) -> bool {
+    fn build(&self, sandbox: &Path, predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
+        // Only include OFile predecessors in the archive
         let inputs: Vec<PathBuf> = predecessors
             .iter()
+            .filter(|p| p.tag() == "OFile")
             .map(|p| sandbox.join(p.pathbuf()))
             .collect();
 
@@ -29,16 +31,7 @@ impl GNode for AFile {
             cmd.arg(input);
         }
 
-        info!("Running: {:?}", cmd);
-
-        match cmd.status() {
-            Ok(status) => status.success(),
-            Err(_) => false,
-        }
-    }
-
-    fn id(&self) -> String {
-        self.name.clone()
+        run_command(&mut cmd, sandbox, &self.name)
     }
 
     fn tag(&self) -> String {

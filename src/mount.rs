@@ -1,8 +1,8 @@
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::Path;
 
-pub(crate) fn mount(srcdir: &PathBuf, sandbox: &PathBuf, p: &PathBuf) -> io::Result<()> {
+pub(crate) fn mount(srcdir: &Path, sandbox: &Path, p: &Path) -> io::Result<()> {
     let src_path = srcdir.join(p);
     let dest_path = sandbox.join(p);
 

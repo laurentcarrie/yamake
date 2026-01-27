@@ -26,7 +26,7 @@ run_1: build ## demo : use our demo C tool, to compile our demo C project
 	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)run the compiled program$(Color_Off)\n"
-	@./$(sandbox)/project_1/demo
+	@./$(sandbox)/project_C/demo
 	@printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n"
 	@cp $(sandbox)/make-report.json doc/src/make-reports/run_1.json
 ## ANCHOR_END: run_1
@@ -39,7 +39,7 @@ run_2: build ## demo : build, delete an artefact, build again
 	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)delete add.o, build again$(Color_Off)\n"
-	rm $(sandbox)/project_1/add.o
+	rm $(sandbox)/project_C/add.o
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n"
 	@cp $(sandbox)/make-report.json doc/src/make-reports/run_2.json
@@ -53,7 +53,7 @@ run_3: build ## demo : make a change in the source, that has no effect (eg, add 
 	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)add a comment$(Color_Off)\n"
-	echo "// a C comment " >> $(srcdir)/project_1/add.c
+	echo "// a C comment " >> $(srcdir)/project_C/add.c
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n"
 	@cp $(sandbox)/make-report.json doc/src/make-reports/run_3.json
@@ -67,7 +67,7 @@ run_4: build ## demo : make a change in the source, that is an coding error
 	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)add a comment$(Color_Off)\n"
-	echo "blah blah " >> $(srcdir)/project_1/add.c
+	echo "blah blah " >> $(srcdir)/project_C/add.c
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n"
 	@cp $(sandbox)/make-report.json doc/src/make-reports/run_4.json
@@ -78,7 +78,7 @@ run : build ## use our demo C tool, to compile our demo C project
 	@printf "\n$(White)$(On_Blue)run yamake tool to build the C program$(Color_Off)\n"
 	$(my_C_tool) $(srcdir) $(sandbox)
 	@printf "\n$(White)$(On_Blue)run the compiled program$(Color_Off)\n"
-	./$(sandbox)/project_1/demo
+	./$(sandbox)/project_C/demo
 	@printf "\n$(White)$(On_Blue)end of run$(Color_Off)\n"
 
 runPdf : build ## use our demo Latex tool, to compile our demo Latex to Pdf
@@ -91,15 +91,15 @@ runPdf : build ## use our demo Latex tool, to compile our demo Latex to Pdf
 
 test1 : build
 	$(my_C_tool) $(srcdir) $(sandbox) && \
-	rm $(sandbox)/project_1/demo && \
+	rm $(sandbox)/project_C/demo && \
 	$(my_C_tool) $(srcdir) $(sandbox) && \
-	ls $(sandbox)/project_1/demo
+	ls $(sandbox)/project_C/demo
 
 test2 : build
 	$(my_C_tool) $(srcdir) $(sandbox) && \
-	rm $(sandbox)/project_1/main.o && \
+	rm $(sandbox)/project_C/main.o && \
 	$(my_C_tool) $(srcdir) $(sandbox) && \
-	ls $(sandbox)/project_1/demo
+	ls $(sandbox)/project_C/demo
 
 test_pdf : build
 

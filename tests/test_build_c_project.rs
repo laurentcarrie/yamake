@@ -19,19 +19,34 @@ use yamake::model::G;
 #[test]
 fn test_build_c_project() {
     let srcdir = PathBuf::from("demo_projects");
+    let srcdir_abs = srcdir.canonicalize().expect("demo_projects should exist");
     let sandbox = TempDir::new("yamake_test").unwrap();
     let sandbox_path = sandbox.path().to_path_buf();
+    // Use absolute path for external dependencies outside the project
+    let include_paths = vec![srcdir_abs.join("other-deps/foo/bar")];
 
     let mut g = G::new(srcdir, sandbox_path.clone());
 
-    let main_c = g.add_root_node(CFile::new("project_1/main.c")).unwrap();
-    let main_o = g.add_node(OFile::new("project_1/main.o")).unwrap();
-    let add_c = g.add_root_node(CFile::new("project_1/add.c")).unwrap();
-    let add_o = g.add_node(OFile::new("project_1/add.o")).unwrap();
-    let _add_h = g.add_root_node(HFile::new("project_1/add.h")).unwrap();
-    let _wrapper_h = g.add_root_node(HFile::new("project_1/wrapper.h")).unwrap();
-    let project_a = g.add_node(AFile::new("project_1/libproject.a")).unwrap();
-    let app = g.add_node(XFile::new("project_1/app")).unwrap();
+    let main_c = g.add_root_node(CFile::new("project_C/main.c")).unwrap();
+    let main_o = g
+        .add_node(OFile::new(
+            "project_C/main.o",
+            include_paths.clone(),
+            vec![],
+        ))
+        .unwrap();
+    let add_c = g.add_root_node(CFile::new("project_C/add.c")).unwrap();
+    let add_o = g
+        .add_node(OFile::new(
+            "project_C/add.o",
+            include_paths.clone(),
+            vec!["-DYYY_defined".to_string()],
+        ))
+        .unwrap();
+    let _add_h = g.add_root_node(HFile::new("project_C/add.h")).unwrap();
+    let _wrapper_h = g.add_root_node(HFile::new("project_C/wrapper.h")).unwrap();
+    let project_a = g.add_node(AFile::new("project_C/libproject.a")).unwrap();
+    let app = g.add_node(XFile::new("project_C/app")).unwrap();
 
     g.add_edge(main_c, main_o);
     g.add_edge(main_o, app);
@@ -46,12 +61,8 @@ fn test_build_c_project() {
     assert!(result, "make should return true on successful build");
 
     // Verify the executable was built
-    let app_path = sandbox_path.join("project_1/app");
-    assert!(
-        app_path.exists(),
-        "Executable should exist at {:?}",
-        app_path
-    );
+    let app_path = sandbox_path.join("project_C/app");
+    assert!(app_path.exists(), "Executable should exist at {app_path:?}");
 
     // Run the executable and check output
     let output = Command::new(&app_path)

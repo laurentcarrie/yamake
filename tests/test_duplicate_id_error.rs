@@ -1,4 +1,4 @@
-//! Test that duplicate node IDs are rejected.
+//! Test that duplicate node pathbufs are rejected.
 
 mod common;
 
@@ -6,10 +6,10 @@ use common::SourceFile;
 use std::path::PathBuf;
 use yamake::model::{G, GraphError};
 
-/// Tests that adding two nodes with the same ID returns a `DuplicateId` error.
+/// Tests that adding two nodes with the same pathbuf returns a `DuplicatePathBuf` error.
 ///
-/// Node IDs must be unique within a graph. This test verifies that attempting
-/// to add a second node with an existing ID fails with the appropriate error.
+/// Node pathbufs must be unique within a graph. This test verifies that attempting
+/// to add a second node with an existing pathbuf fails with the appropriate error.
 #[test]
 fn test_duplicate_id_error() {
     let mut g = G::new(PathBuf::from("src"), PathBuf::from("build"));
@@ -24,5 +24,8 @@ fn test_duplicate_id_error() {
     });
 
     assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), GraphError::DuplicateId(_)));
+    assert!(matches!(
+        result.unwrap_err(),
+        GraphError::DuplicatePathBuf(_)
+    ));
 }
