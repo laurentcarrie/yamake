@@ -7,13 +7,13 @@ first we have a description of messages in different languages, in a yaml file.
 we have a code generator, written in rust. The code source is part of the project
 
 This will generate C files, and we have our `main.c` that will print some messages
-file `greetings.yml`
+file `languages.yml`
 
 ```yml
-{{#include ../../demo_projects/demo_expand/greetings.yml}}
+{{#include ../../demo_projects/project_expand/languages.yml}}
 ```
 
-from the `greetings.yaml` file C files and H files will be generated, but for now we don't have this list so we cannot build the build graph,
+from the `languages.yml` file C files and H files will be generated, but for now we don't have this list so we cannot build the build graph,
 so our graph looks like this but is incomplete
 
 

@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - Added recursive Makefile example and comparison
 - Reorganized SUMMARY.md with improved structure
 - Added examples for project_C and project_expand
+- Fixed expand.md to reference correct demo project path
 
 ## [0.1.5]
 
