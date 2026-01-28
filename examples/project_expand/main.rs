@@ -1,3 +1,50 @@
+//! Example: Dynamic code generation with expand.
+//!
+//! This example demonstrates yamake's `expand` feature, which allows nodes
+//! to dynamically generate additional nodes and edges during the build process.
+//!
+//! # How Expand Works
+//!
+//! 1. A YAML configuration file (`languages.yml`) defines available languages
+//! 2. `YmlDesc` (root node) is mounted to the sandbox
+//! 3. `JsonDesc` converts YAML to JSON and calls `expand()` after building
+//! 4. `expand()` generates C source files, headers, and object files for each language
+//! 5. These generated files are compiled into a static library (`liblangs.a`)
+//! 6. The main executable links against this library
+//!
+//! # Project Structure
+//!
+//! ```text
+//! project_expand/
+//! ├── main.c           # Main source (uses generated headers)
+//! ├── wrapper.h        # Includes generated languages.h
+//! ├── languages.yml    # Configuration: list of languages
+//! └── generated/       # Created by expand()
+//!     ├── languages.h  # Generated: function pointer array
+//!     ├── english.c    # Generated: "Hello, World!"
+//!     ├── english.h
+//!     ├── french.c     # Generated: "Bonjour!"
+//!     ├── french.h
+//!     └── liblangs.a   # Static library
+//! ```
+//!
+//! # Build Graph (after expand)
+//!
+//! ```text
+//! languages.yml ──► languages.json ──► [expand generates:]
+//!                                       ├── english.c ──► english.o ──┐
+//!                                       ├── french.c ──► french.o ────┼──► liblangs.a
+//!                                       └── languages.h               │         │
+//!                                                                     │         │
+//! main.c ──────────────────────────────► main.o ──────────────────────┴─────────┴──► app
+//! ```
+//!
+//! # Usage
+//!
+//! ```bash
+//! cargo run --example project_expand -- -s demo_projects -b /tmp/sandbox
+//! ```
+
 #[path = "../../tests/common/mod.rs"]
 mod common;
 
@@ -9,6 +56,7 @@ use std::path::PathBuf;
 use yamake::c_nodes::{AFile, CFile, HFile, OFile, XFile};
 use yamake::model::G;
 
+/// Command-line arguments for the project_expand example.
 #[derive(FromArgs)]
 /// A C project build example demonstrating expand functionality
 struct Args {

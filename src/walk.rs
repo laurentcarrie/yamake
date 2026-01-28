@@ -55,8 +55,13 @@ impl G {
         }
     }
 
-    fn mount_root_nodes(&mut self, previous_digests: &BTreeMap<String, String>) -> bool {
+    fn mount_root_nodes(
+        &mut self,
+        previous_digests: &BTreeMap<String, String>,
+    ) -> (bool, Vec<NodeIndex>) {
         let node_indices: Vec<NodeIndex> = self.g.node_indices().collect();
+        let mut mounted_roots: Vec<NodeIndex> = Vec::new();
+
         for node_idx in node_indices {
             if self.nodes_status.get(&node_idx) != Some(&GNodeStatus::Initial) {
                 continue;
@@ -85,7 +90,7 @@ impl G {
                     error!("Failed to mount {}: {}", node.pathbuf().display(), e);
                     self.nodes_status
                         .insert(node_idx, GNodeStatus::MountedFailed);
-                    return false;
+                    return (false, mounted_roots);
                 }
 
                 if changed {
@@ -95,9 +100,64 @@ impl G {
                     self.nodes_status
                         .insert(node_idx, GNodeStatus::MountedNotChanged);
                 }
+
+                mounted_roots.push(node_idx);
             }
         }
-        true
+        (true, mounted_roots)
+    }
+
+    fn expand_root_nodes(
+        &mut self,
+        root_indices: &[NodeIndex],
+        expanded_nodes: &mut HashSet<NodeIndex>,
+        all_nodes: &mut Vec<NodeIndex>,
+    ) {
+        for &node_idx in root_indices {
+            let node = &self.g[node_idx];
+            let predecessors: Vec<&(dyn crate::model::GNode + Send + Sync)> = Vec::new();
+
+            // Call expand on the root node
+            let (new_expanded_nodes, new_expanded_edges) =
+                node.expand(&self.sandbox, &predecessors);
+
+            // Add expanded nodes to the graph (skip if already exists)
+            for exp_node in new_expanded_nodes {
+                let pathbuf = exp_node.pathbuf();
+                let existing = self
+                    .g
+                    .node_indices()
+                    .find(|&i| self.g[i].pathbuf() == pathbuf);
+                if existing.is_none() {
+                    let new_idx = self.g.add_node(exp_node);
+                    self.nodes_status
+                        .insert(new_idx, GNodeStatus::MountedChanged);
+                    expanded_nodes.insert(new_idx);
+                    all_nodes.push(new_idx);
+                }
+            }
+
+            // Add expanded edges between nodes (skip if already exists)
+            for edge in new_expanded_edges {
+                let from_pathbuf = edge.nfrom.pathbuf();
+                let to_pathbuf = edge.nto.pathbuf();
+                let from_idx = self
+                    .g
+                    .node_indices()
+                    .find(|&i| self.g[i].pathbuf() == from_pathbuf);
+                let to_idx = self
+                    .g
+                    .node_indices()
+                    .find(|&i| self.g[i].pathbuf() == to_pathbuf);
+                if let (Some(from), Some(to)) = (from_idx, to_idx) {
+                    // Check if edge already exists
+                    let edge_exists = self.g.edges_connecting(from, to).next().is_some();
+                    if !edge_exists {
+                        self.g.add_edge(from, to, crate::model::EdgeType::Expanded);
+                    }
+                }
+            }
+        }
     }
 
     pub fn make(&mut self) -> bool {
@@ -116,9 +176,6 @@ impl G {
             })
             .unwrap_or_default();
 
-        // Track expanded nodes during this build
-        let mut expanded_nodes: HashSet<NodeIndex> = HashSet::new();
-
         // Reset all node statuses to Initial
         for node_idx in self.g.node_indices() {
             self.nodes_status.insert(node_idx, GNodeStatus::Initial);
@@ -126,12 +183,19 @@ impl G {
         self.print_status();
 
         // Mount root nodes
-        if !self.mount_root_nodes(&previous_digests) {
+        let (mount_ok, mounted_roots) = self.mount_root_nodes(&previous_digests);
+        if !mount_ok {
             return false;
         }
         self.print_status();
 
         let mut all_nodes: Vec<NodeIndex> = self.g.node_indices().collect();
+
+        // Track expanded nodes during this build
+        let mut expanded_nodes: HashSet<NodeIndex> = HashSet::new();
+
+        // Expand root nodes after mounting
+        self.expand_root_nodes(&mounted_roots, &mut expanded_nodes, &mut all_nodes);
 
         // Initialize built set with already-mounted root nodes
         let mut built: HashSet<NodeIndex> = all_nodes
@@ -234,9 +298,12 @@ impl G {
             }
 
             // Mount any new root nodes that became reachable after scanning
-            if !self.mount_root_nodes(&previous_digests) {
+            let (mount_ok, new_mounted_roots) = self.mount_root_nodes(&previous_digests);
+            if !mount_ok {
                 return false;
             }
+            // Expand any newly mounted root nodes
+            self.expand_root_nodes(&new_mounted_roots, &mut expanded_nodes, &mut all_nodes);
 
             // Re-evaluate which nodes are truly ready (after adding scanned edges)
             // Exclude nodes with incomplete scans
