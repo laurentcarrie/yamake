@@ -2,6 +2,7 @@ use super::Language;
 use std::fs;
 use std::path::{Path, PathBuf};
 use yamake::c_nodes::{AFile, CFile, HFile, OFile};
+use yamake::command::log_build;
 use yamake::model::{Edge, ExpandResult, GNode};
 
 pub struct JsonDesc {
@@ -54,8 +55,23 @@ impl GNode for JsonDesc {
             fs::create_dir_all(parent).ok();
         }
 
-        fs::write(&output_path, json_content)
+        fs::write(&output_path, &json_content)
             .unwrap_or_else(|e| panic!("Failed to write {}: {}", output_path.display(), e));
+
+        // Log the build operation
+        let description = format!(
+            "Convert YAML to JSON: {} -> {}",
+            input_path.display(),
+            output_path.display()
+        );
+        let stdout = format!(
+            "Read {} languages from {}\nWrote {} bytes to {}\n",
+            languages.len(),
+            input_path.display(),
+            json_content.len(),
+            output_path.display()
+        );
+        log_build(sandbox, &self.name, &description, &stdout, "");
 
         true
     }
