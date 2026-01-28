@@ -105,7 +105,119 @@ pub trait GNode: Send + Sync {
 // ANCHOR_END: GNode
 
 // ANCHOR: GRootNode
+/// A root node in the build graph representing a source file.
+///
+/// Root nodes are inputs to the build system (e.g., source files, configuration files)
+/// that do not need to be built themselves. They automatically implement [`GNode`] with
+/// a no-op `build` that returns `true`.
+///
+/// # Examples
+///
+/// ## Basic GRootNode
+///
+/// A simple root node representing a source file:
+///
+/// ```
+/// use std::path::PathBuf;
+/// use yamake::model::GRootNode;
+///
+/// struct SourceFile {
+///     name: String,
+/// }
+///
+/// impl GRootNode for SourceFile {
+///     fn tag(&self) -> String {
+///         "SourceFile".to_string()
+///     }
+///
+///     fn pathbuf(&self) -> PathBuf {
+///         PathBuf::from(&self.name)
+///     }
+/// }
+///
+/// let source = SourceFile { name: "main.c".to_string() };
+/// assert_eq!(source.tag(), "SourceFile");
+/// assert_eq!(source.pathbuf(), PathBuf::from("main.c"));
+/// ```
+///
+/// ## GRootNode with expand
+///
+/// A root node that generates additional nodes and edges when expanded:
+///
+/// ```
+/// use std::path::{Path, PathBuf};
+/// use yamake::model::{Edge, ExpandResult, GNode, GRootNode};
+///
+/// /// A generated node produced by expand.
+/// struct GeneratedNode {
+///     name: String,
+/// }
+///
+/// impl GNode for GeneratedNode {
+///     fn tag(&self) -> String {
+///         "GeneratedNode".to_string()
+///     }
+///     fn pathbuf(&self) -> PathBuf {
+///         PathBuf::from(&self.name)
+///     }
+///     fn build(&self, _sandbox: &Path, _predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
+///         true
+///     }
+/// }
+///
+/// /// A root node that expands to generate additional nodes.
+/// struct ConfigFile {
+///     name: String,
+/// }
+///
+/// impl GRootNode for ConfigFile {
+///     fn tag(&self) -> String {
+///         "ConfigFile".to_string()
+///     }
+///
+///     fn pathbuf(&self) -> PathBuf {
+///         PathBuf::from(&self.name)
+///     }
+///
+///     fn expand(
+///         &self,
+///         _sandbox: &Path,
+///         _predecessors: &[&(dyn GNode + Send + Sync)],
+///     ) -> ExpandResult {
+///         // Generate nodes based on configuration
+///         let node1 = GeneratedNode { name: "generated/file1.o".to_string() };
+///         let node2 = GeneratedNode { name: "generated/file2.o".to_string() };
+///
+///         let nodes: Vec<Box<dyn GNode + Send + Sync>> = vec![
+///             Box::new(node1),
+///             Box::new(node2),
+///         ];
+///
+///         // No edges in this example
+///         let edges: Vec<Edge> = vec![];
+///
+///         (nodes, edges)
+///     }
+/// }
+///
+/// let config = ConfigFile { name: "config.yml".to_string() };
+/// let sandbox = PathBuf::from("/tmp/sandbox");
+/// let predecessors: Vec<&(dyn GNode + Send + Sync)> = vec![];
+///
+/// // Use GRootNode::expand to disambiguate from the blanket GNode impl
+/// let (nodes, edges) = GRootNode::expand(&config, &sandbox, &predecessors);
+/// assert_eq!(nodes.len(), 2);
+/// assert_eq!(nodes[0].pathbuf(), PathBuf::from("generated/file1.o"));
+/// assert_eq!(nodes[1].pathbuf(), PathBuf::from("generated/file2.o"));
+/// ```
 pub trait GRootNode {
+    /// Expands this node to generate additional nodes and edges.
+    ///
+    /// Called after the node is built to dynamically add new nodes and edges
+    /// to the build graph. This is useful for nodes that generate code or
+    /// configuration that determines additional build targets.
+    ///
+    /// Returns a tuple of (nodes_to_add, edges_to_add).
     fn expand(
         &self,
         _sandbox: &Path,
@@ -113,7 +225,11 @@ pub trait GRootNode {
     ) -> ExpandResult {
         (Vec::new(), Vec::new())
     }
+
+    /// Returns a tag identifying the type of this node.
     fn tag(&self) -> String;
+
+    /// Returns the path associated with this node.
     fn pathbuf(&self) -> PathBuf;
 }
 // ANCHOR_END: GRootNode

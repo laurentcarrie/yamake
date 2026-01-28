@@ -1,3 +1,41 @@
+//! Example: Building a C project with yamake.
+//!
+//! This example demonstrates how to use yamake to build a simple C project
+//! consisting of multiple source files, a static library, and an executable.
+//!
+//! # Project Structure
+//!
+//! ```text
+//! project_C/
+//! ├── main.c      # Main source file
+//! ├── add.c       # Library source file
+//! ├── add.h       # Library header
+//! └── wrapper.h   # Wrapper header (includes add.h)
+//! ```
+//!
+//! # Build Graph
+//!
+//! The build creates the following dependency graph:
+//!
+//! ```text
+//! main.c ──► main.o ──────────────────────► app
+//!                                            ▲
+//! add.c ───► add.o ───► libproject.a ────────┘
+//! ```
+//!
+//! # Usage
+//!
+//! ```bash
+//! cargo run --example project_C -- -s demo_projects -b /tmp/sandbox
+//! ```
+//!
+//! # Key Concepts
+//!
+//! - **Root nodes**: Source files (`CFile`, `HFile`) that don't need building
+//! - **Build nodes**: Output files (`OFile`, `AFile`, `XFile`) that are built
+//! - **Edges**: Dependencies between nodes (source → object → executable)
+//! - **Automatic scanning**: Header dependencies are discovered automatically
+
 // ANCHOR: use
 use argh::FromArgs;
 use log::info;
@@ -15,6 +53,7 @@ use yamake::model::G;
 // - XFile: Executable files
 // ANCHOR_END: use_existing_rules
 
+/// Command-line arguments for the project_C example.
 #[derive(FromArgs)]
 /// A C project build example
 struct Args {

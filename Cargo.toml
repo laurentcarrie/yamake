@@ -1,13 +1,21 @@
 [package]
 name = "yamake"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2024"
 description="yet another make tool."
 license = "MIT OR Apache-2.0"
 repository="https://github.com/laurentcarrie/yamake"
 readme="README.md"
 
+[[example]]
+name = "project_C"
+path = "examples/project_C/main.rs"
+doc = true
 
+[[example]]
+name = "project_expand"
+path = "examples/project_expand/main.rs"
+doc = true
 
 [dependencies]
 argh = "0.1.13"
