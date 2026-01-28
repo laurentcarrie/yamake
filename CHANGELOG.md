@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-01-28
+
+### Added
+- **GRootNode expand support**: The `expand` method is now called on root nodes after mounting
+  - Previously, `expand` was only called on build nodes after they were built
+  - Root nodes can now dynamically generate additional nodes and edges
+- **expand_root_nodes() method**: New internal method in walk.rs to handle root node expansion
+- **GRootNode documentation**: Added comprehensive doc examples for the `GRootNode` trait
+  - Basic usage example showing a simple source file node
+  - Advanced example demonstrating `expand` to generate nodes dynamically
+- **Example documentation**: Added module-level docs to examples/project_C and examples/project_expand
+  - Project structure diagrams
+  - Build graph visualizations
+  - Usage instructions
+- **Examples in cargo doc**: Configured Cargo.toml to include examples in documentation output
+
+### Changed
+- **mount_root_nodes() return type**: Now returns `(bool, Vec<NodeIndex>)` to track which roots were mounted
+
+### Tests
+- `test_grootnode_expand_called_during_make`: Verifies that `expand` is called on `GRootNode` during `make()`
+
 ## [0.1.6] - 2026-01-27
 
 ### Added
