@@ -8,6 +8,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Mutex;
 
+use crate::command::log_build;
 use crate::model::{G, GNodeStatus, MakeOutput, OutputInfo, PredecessorInfo};
 use crate::mount::mount;
 
@@ -112,14 +113,27 @@ impl G {
         root_indices: &[NodeIndex],
         expanded_nodes: &mut HashSet<NodeIndex>,
         all_nodes: &mut Vec<NodeIndex>,
-    ) {
+    ) -> bool {
         for &node_idx in root_indices {
             let node = &self.g[node_idx];
             let predecessors: Vec<&(dyn crate::model::GNode + Send + Sync)> = Vec::new();
 
             // Call expand on the root node
             let (new_expanded_nodes, new_expanded_edges) =
-                node.expand(&self.sandbox, &predecessors);
+                match node.expand(&self.sandbox, &predecessors) {
+                    Ok(result) => result,
+                    Err(e) => {
+                        let node_path = node.pathbuf();
+                        let error_msg = format!("Expand failed: {e}");
+                        error!("Expand failed for {}: {}", node_path.display(), e);
+
+                        // Write error to separate expand log file
+                        let expand_log_id = format!("{}.expand", node_path.to_string_lossy());
+                        log_build(&self.sandbox, &expand_log_id, "expand", "", &error_msg);
+
+                        return false;
+                    }
+                };
 
             // Add expanded nodes to the graph (skip if already exists)
             for exp_node in new_expanded_nodes {
@@ -158,6 +172,7 @@ impl G {
                 }
             }
         }
+        true
     }
 
     pub fn make(&mut self) -> bool {
@@ -195,7 +210,9 @@ impl G {
         let mut expanded_nodes: HashSet<NodeIndex> = HashSet::new();
 
         // Expand root nodes after mounting
-        self.expand_root_nodes(&mounted_roots, &mut expanded_nodes, &mut all_nodes);
+        if !self.expand_root_nodes(&mounted_roots, &mut expanded_nodes, &mut all_nodes) {
+            return false;
+        }
 
         // Initialize built set with already-mounted root nodes
         let mut built: HashSet<NodeIndex> = all_nodes
@@ -303,7 +320,9 @@ impl G {
                 return false;
             }
             // Expand any newly mounted root nodes
-            self.expand_root_nodes(&new_mounted_roots, &mut expanded_nodes, &mut all_nodes);
+            if !self.expand_root_nodes(&new_mounted_roots, &mut expanded_nodes, &mut all_nodes) {
+                return false;
+            }
 
             // Re-evaluate which nodes are truly ready (after adding scanned edges)
             // Exclude nodes with incomplete scans
@@ -382,7 +401,7 @@ impl G {
                     }
                     build_results.lock().unwrap().insert(
                         node_idx,
-                        (GNodeStatus::AncestorFailed, (Vec::new(), Vec::new())),
+                        (GNodeStatus::AncestorFailed, Ok((Vec::new(), Vec::new()))),
                     );
                     return;
                 }
@@ -403,24 +422,41 @@ impl G {
                         )
                     });
 
-                // Determine if we need to build
-                let need_build = if all_predecessors_not_required {
+                // Determine if we need to build and why
+                let build_reason: Option<String> = if all_predecessors_not_required {
                     // Check if output exists and digest matches
                     if output_path.exists() {
                         let current_digest = compute_file_digest(&output_path);
                         let previous_digest = previous_digests.get(&pathbuf_str);
                         match (&current_digest, previous_digest) {
-                            (Some(current), Some(previous)) => current != previous,
-                            _ => true, // No digest available, need to build
+                            (Some(current), Some(previous)) if current == previous => None,
+                            (Some(_), Some(_)) => Some("output digest changed".to_string()),
+                            (None, _) => Some("failed to read output file".to_string()),
+                            (_, None) => Some("no previous digest available".to_string()),
                         }
                     } else {
-                        true // Output doesn't exist, need to build
+                        Some("output does not exist".to_string())
                     }
                 } else {
-                    true // Some predecessor changed, need to build
+                    // Find which predecessors changed
+                    let changed_preds: Vec<String> = pred_indices
+                        .iter()
+                        .filter(|&pred_idx| {
+                            !matches!(
+                                self.nodes_status.get(pred_idx),
+                                Some(GNodeStatus::BuildNotRequired)
+                                    | Some(GNodeStatus::MountedNotChanged)
+                            )
+                        })
+                        .map(|&pred_idx| self.g[pred_idx].pathbuf().to_string_lossy().to_string())
+                        .collect();
+                    Some(format!(
+                        "predecessor(s) changed: {}",
+                        changed_preds.join(", ")
+                    ))
                 };
 
-                if !need_build {
+                if build_reason.is_none() {
                     // Skip build, output is up-to-date, but still run expand
                     let expand_result = node.expand(&self.sandbox, &predecessors);
                     build_results
@@ -429,6 +465,13 @@ impl G {
                         .insert(node_idx, (GNodeStatus::BuildNotRequired, expand_result));
                     return;
                 }
+
+                // Log the reason for building
+                info!(
+                    "Building {}: {}",
+                    node.pathbuf().display(),
+                    build_reason.as_ref().unwrap()
+                );
 
                 // Perform the build
                 let build_ok = node.build(&self.sandbox, &predecessors);
@@ -472,9 +515,32 @@ impl G {
             // Update status based on build results
             let mut results = build_results.into_inner().unwrap();
             for idx in ready.clone() {
-                let (status, (new_expanded_nodes, new_expanded_edges)) = results
+                let (status, expand_result) = results
                     .remove(&idx)
-                    .unwrap_or((GNodeStatus::BuildFailed, (Vec::new(), Vec::new())));
+                    .unwrap_or((GNodeStatus::BuildFailed, Ok((Vec::new(), Vec::new()))));
+
+                // Handle expand result
+                let (new_expanded_nodes, new_expanded_edges) = match expand_result {
+                    Ok(data) => data,
+                    Err(e) => {
+                        let node_path = self.g[idx].pathbuf();
+                        let error_msg = format!("Expand failed: {e}");
+                        error!("Expand failed for {}: {}", node_path.display(), e);
+
+                        // Write error to separate expand log file (don't overwrite build logs)
+                        let expand_log_id = format!("{}.expand", node_path.to_string_lossy());
+                        log_build(&self.sandbox, &expand_log_id, "expand", "", &error_msg);
+
+                        // Treat expand failure as build failure
+                        self.nodes_status.insert(idx, GNodeStatus::BuildFailed);
+                        self.mark_dependents_failed(idx, &mut built);
+                        success = false;
+                        built.insert(idx);
+                        progress_made = true;
+                        continue;
+                    }
+                };
+
                 self.nodes_status.insert(idx, status);
 
                 if status == GNodeStatus::BuildFailed || status == GNodeStatus::AncestorFailed {

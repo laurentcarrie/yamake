@@ -77,8 +77,44 @@ pub struct Edge {
     pub nto: Box<dyn GNode + Send + Sync>,
 }
 
-/// Return type for expand method: (nodes_to_add, edges_to_add)
-pub type ExpandResult = (Vec<Box<dyn GNode + Send + Sync>>, Vec<Edge>);
+/// Error type for expand operations.
+#[derive(Debug)]
+pub enum ExpandError {
+    /// A file required for expansion was not found.
+    FileNotFound(PathBuf),
+    /// Failed to read a file.
+    ReadError(PathBuf, std::io::Error),
+    /// Failed to parse file contents.
+    ParseError(String),
+    /// Failed to write a generated file.
+    WriteError(PathBuf, std::io::Error),
+    /// Generic expansion error with a message.
+    Other(String),
+}
+
+impl fmt::Display for ExpandError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ExpandError::FileNotFound(path) => write!(f, "File not found: {}", path.display()),
+            ExpandError::ReadError(path, e) => {
+                write!(f, "Failed to read {}: {}", path.display(), e)
+            }
+            ExpandError::ParseError(msg) => write!(f, "Parse error: {msg}"),
+            ExpandError::WriteError(path, e) => {
+                write!(f, "Failed to write {}: {}", path.display(), e)
+            }
+            ExpandError::Other(msg) => write!(f, "{msg}"),
+        }
+    }
+}
+
+impl std::error::Error for ExpandError {}
+
+/// Successful result of an expand operation: (nodes_to_add, edges_to_add)
+pub type ExpandData = (Vec<Box<dyn GNode + Send + Sync>>, Vec<Edge>);
+
+/// Return type for expand method.
+pub type ExpandResult = Result<ExpandData, ExpandError>;
 
 // ANCHOR: GNode
 pub trait GNode: Send + Sync {
@@ -97,7 +133,7 @@ pub trait GNode: Send + Sync {
         _sandbox: &Path,
         _predecessors: &[&(dyn GNode + Send + Sync)],
     ) -> ExpandResult {
-        (Vec::new(), Vec::new())
+        Ok((Vec::new(), Vec::new()))
     }
     fn tag(&self) -> String;
     fn pathbuf(&self) -> PathBuf;
@@ -196,7 +232,7 @@ pub trait GNode: Send + Sync {
 ///         // No edges in this example
 ///         let edges: Vec<Edge> = vec![];
 ///
-///         (nodes, edges)
+///         Ok((nodes, edges))
 ///     }
 /// }
 ///
@@ -205,7 +241,7 @@ pub trait GNode: Send + Sync {
 /// let predecessors: Vec<&(dyn GNode + Send + Sync)> = vec![];
 ///
 /// // Use GRootNode::expand to disambiguate from the blanket GNode impl
-/// let (nodes, edges) = GRootNode::expand(&config, &sandbox, &predecessors);
+/// let (nodes, edges) = GRootNode::expand(&config, &sandbox, &predecessors).unwrap();
 /// assert_eq!(nodes.len(), 2);
 /// assert_eq!(nodes[0].pathbuf(), PathBuf::from("generated/file1.o"));
 /// assert_eq!(nodes[1].pathbuf(), PathBuf::from("generated/file2.o"));
@@ -217,13 +253,13 @@ pub trait GRootNode {
     /// to the build graph. This is useful for nodes that generate code or
     /// configuration that determines additional build targets.
     ///
-    /// Returns a tuple of (nodes_to_add, edges_to_add).
+    /// Returns `Ok((nodes_to_add, edges_to_add))` on success, or an `ExpandError` on failure.
     fn expand(
         &self,
         _sandbox: &Path,
         _predecessors: &[&(dyn GNode + Send + Sync)],
     ) -> ExpandResult {
-        (Vec::new(), Vec::new())
+        Ok((Vec::new(), Vec::new()))
     }
 
     /// Returns a tag identifying the type of this node.
@@ -466,7 +502,12 @@ impl G {
                 .to_string()
                 .bright_blue()
                 .bold(),
-            counts.get(&GNodeStatus::MountedFailed).unwrap_or(&0),
+            counts
+                .get(&GNodeStatus::MountedFailed)
+                .unwrap_or(&0)
+                .to_string()
+                .red()
+                .bold(),
             counts.get(&GNodeStatus::ScanIncomplete).unwrap_or(&0),
             counts
                 .get(&GNodeStatus::Running)
@@ -474,15 +515,30 @@ impl G {
                 .to_string()
                 .bright_cyan()
                 .bold(),
-            counts.get(&GNodeStatus::BuildSuccess).unwrap_or(&0),
+            counts
+                .get(&GNodeStatus::BuildSuccess)
+                .unwrap_or(&0)
+                .to_string()
+                .green()
+                .bold(),
             counts
                 .get(&GNodeStatus::BuildNotRequired)
                 .unwrap_or(&0)
                 .to_string()
                 .bright_magenta()
                 .bold(),
-            counts.get(&GNodeStatus::BuildFailed).unwrap_or(&0),
-            counts.get(&GNodeStatus::AncestorFailed).unwrap_or(&0)
+            counts
+                .get(&GNodeStatus::BuildFailed)
+                .unwrap_or(&0)
+                .to_string()
+                .bright_red()
+                .bold(),
+            counts
+                .get(&GNodeStatus::AncestorFailed)
+                .unwrap_or(&0)
+                .to_string()
+                .truecolor(255, 165, 0)
+                .bold()
         );
     }
 }
