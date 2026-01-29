@@ -502,7 +502,12 @@ impl G {
                 .to_string()
                 .bright_blue()
                 .bold(),
-            counts.get(&GNodeStatus::MountedFailed).unwrap_or(&0),
+            counts
+                .get(&GNodeStatus::MountedFailed)
+                .unwrap_or(&0)
+                .to_string()
+                .red()
+                .bold(),
             counts.get(&GNodeStatus::ScanIncomplete).unwrap_or(&0),
             counts
                 .get(&GNodeStatus::Running)
@@ -510,7 +515,12 @@ impl G {
                 .to_string()
                 .bright_cyan()
                 .bold(),
-            counts.get(&GNodeStatus::BuildSuccess).unwrap_or(&0),
+            counts
+                .get(&GNodeStatus::BuildSuccess)
+                .unwrap_or(&0)
+                .to_string()
+                .green()
+                .bold(),
             counts
                 .get(&GNodeStatus::BuildNotRequired)
                 .unwrap_or(&0)
@@ -523,7 +533,12 @@ impl G {
                 .to_string()
                 .bright_red()
                 .bold(),
-            counts.get(&GNodeStatus::AncestorFailed).unwrap_or(&0)
+            counts
+                .get(&GNodeStatus::AncestorFailed)
+                .unwrap_or(&0)
+                .to_string()
+                .truecolor(255, 165, 0)
+                .bold()
         );
     }
 }
