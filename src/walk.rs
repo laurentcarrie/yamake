@@ -8,6 +8,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Mutex;
 
+use crate::command::log_build;
 use crate::model::{G, GNodeStatus, MakeOutput, OutputInfo, PredecessorInfo};
 use crate::mount::mount;
 
@@ -122,7 +123,14 @@ impl G {
                 match node.expand(&self.sandbox, &predecessors) {
                     Ok(result) => result,
                     Err(e) => {
-                        error!("Expand failed for {}: {}", node.pathbuf().display(), e);
+                        let node_path = node.pathbuf();
+                        let error_msg = format!("Expand failed: {e}");
+                        error!("Expand failed for {}: {}", node_path.display(), e);
+
+                        // Write error to separate expand log file
+                        let expand_log_id = format!("{}.expand", node_path.to_string_lossy());
+                        log_build(&self.sandbox, &expand_log_id, "expand", "", &error_msg);
+
                         return false;
                     }
                 };
@@ -491,11 +499,14 @@ impl G {
                 let (new_expanded_nodes, new_expanded_edges) = match expand_result {
                     Ok(data) => data,
                     Err(e) => {
-                        error!(
-                            "Expand failed for {}: {}",
-                            self.g[idx].pathbuf().display(),
-                            e
-                        );
+                        let node_path = self.g[idx].pathbuf();
+                        let error_msg = format!("Expand failed: {e}");
+                        error!("Expand failed for {}: {}", node_path.display(), e);
+
+                        // Write error to separate expand log file (don't overwrite build logs)
+                        let expand_log_id = format!("{}.expand", node_path.to_string_lossy());
+                        log_build(&self.sandbox, &expand_log_id, "expand", "", &error_msg);
+
                         // Treat expand failure as build failure
                         self.nodes_status.insert(idx, GNodeStatus::BuildFailed);
                         self.mark_dependents_failed(idx, &mut built);
