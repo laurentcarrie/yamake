@@ -517,7 +517,12 @@ impl G {
                 .to_string()
                 .bright_magenta()
                 .bold(),
-            counts.get(&GNodeStatus::BuildFailed).unwrap_or(&0),
+            counts
+                .get(&GNodeStatus::BuildFailed)
+                .unwrap_or(&0)
+                .to_string()
+                .bright_red()
+                .bold(),
             counts.get(&GNodeStatus::AncestorFailed).unwrap_or(&0)
         );
     }
