@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-01-29
+
 ### Added
 - **Colored status logs**: Build status now displayed with colors for better visibility
   - `MF` (MountedFailed): red
