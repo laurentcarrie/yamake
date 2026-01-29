@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Colored status logs**: Build status now displayed with colors for better visibility
+  - `MF` (MountedFailed): red
+  - `BF` (BuildFailed): red
+  - `BS` (BuildSuccess): green
+  - `AF` (AncestorFailed): orange
+- **Build reason logging**: Logs the reason why a node is being built before building starts
+
+### Changed
+- **expand() return type**: The `expand` method now returns `Result<(), String>` instead of `()`
+  - Allows expand implementations to report errors
+  - Build fails gracefully when expand returns an error
+
 ## [0.1.7] - 2026-01-28
 
 ### Added
