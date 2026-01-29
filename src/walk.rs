@@ -422,24 +422,41 @@ impl G {
                         )
                     });
 
-                // Determine if we need to build
-                let need_build = if all_predecessors_not_required {
+                // Determine if we need to build and why
+                let build_reason: Option<String> = if all_predecessors_not_required {
                     // Check if output exists and digest matches
                     if output_path.exists() {
                         let current_digest = compute_file_digest(&output_path);
                         let previous_digest = previous_digests.get(&pathbuf_str);
                         match (&current_digest, previous_digest) {
-                            (Some(current), Some(previous)) => current != previous,
-                            _ => true, // No digest available, need to build
+                            (Some(current), Some(previous)) if current == previous => None,
+                            (Some(_), Some(_)) => Some("output digest changed".to_string()),
+                            (None, _) => Some("failed to read output file".to_string()),
+                            (_, None) => Some("no previous digest available".to_string()),
                         }
                     } else {
-                        true // Output doesn't exist, need to build
+                        Some("output does not exist".to_string())
                     }
                 } else {
-                    true // Some predecessor changed, need to build
+                    // Find which predecessors changed
+                    let changed_preds: Vec<String> = pred_indices
+                        .iter()
+                        .filter(|&pred_idx| {
+                            !matches!(
+                                self.nodes_status.get(pred_idx),
+                                Some(GNodeStatus::BuildNotRequired)
+                                    | Some(GNodeStatus::MountedNotChanged)
+                            )
+                        })
+                        .map(|&pred_idx| self.g[pred_idx].pathbuf().to_string_lossy().to_string())
+                        .collect();
+                    Some(format!(
+                        "predecessor(s) changed: {}",
+                        changed_preds.join(", ")
+                    ))
                 };
 
-                if !need_build {
+                if build_reason.is_none() {
                     // Skip build, output is up-to-date, but still run expand
                     let expand_result = node.expand(&self.sandbox, &predecessors);
                     build_results
@@ -448,6 +465,13 @@ impl G {
                         .insert(node_idx, (GNodeStatus::BuildNotRequired, expand_result));
                     return;
                 }
+
+                // Log the reason for building
+                info!(
+                    "Building {}: {}",
+                    node.pathbuf().display(),
+                    build_reason.as_ref().unwrap()
+                );
 
                 // Perform the build
                 let build_ok = node.build(&self.sandbox, &predecessors);
