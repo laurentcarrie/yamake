@@ -112,14 +112,20 @@ impl G {
         root_indices: &[NodeIndex],
         expanded_nodes: &mut HashSet<NodeIndex>,
         all_nodes: &mut Vec<NodeIndex>,
-    ) {
+    ) -> bool {
         for &node_idx in root_indices {
             let node = &self.g[node_idx];
             let predecessors: Vec<&(dyn crate::model::GNode + Send + Sync)> = Vec::new();
 
             // Call expand on the root node
             let (new_expanded_nodes, new_expanded_edges) =
-                node.expand(&self.sandbox, &predecessors);
+                match node.expand(&self.sandbox, &predecessors) {
+                    Ok(result) => result,
+                    Err(e) => {
+                        error!("Expand failed for {}: {}", node.pathbuf().display(), e);
+                        return false;
+                    }
+                };
 
             // Add expanded nodes to the graph (skip if already exists)
             for exp_node in new_expanded_nodes {
@@ -158,6 +164,7 @@ impl G {
                 }
             }
         }
+        true
     }
 
     pub fn make(&mut self) -> bool {
@@ -195,7 +202,9 @@ impl G {
         let mut expanded_nodes: HashSet<NodeIndex> = HashSet::new();
 
         // Expand root nodes after mounting
-        self.expand_root_nodes(&mounted_roots, &mut expanded_nodes, &mut all_nodes);
+        if !self.expand_root_nodes(&mounted_roots, &mut expanded_nodes, &mut all_nodes) {
+            return false;
+        }
 
         // Initialize built set with already-mounted root nodes
         let mut built: HashSet<NodeIndex> = all_nodes
@@ -303,7 +312,9 @@ impl G {
                 return false;
             }
             // Expand any newly mounted root nodes
-            self.expand_root_nodes(&new_mounted_roots, &mut expanded_nodes, &mut all_nodes);
+            if !self.expand_root_nodes(&new_mounted_roots, &mut expanded_nodes, &mut all_nodes) {
+                return false;
+            }
 
             // Re-evaluate which nodes are truly ready (after adding scanned edges)
             // Exclude nodes with incomplete scans
@@ -382,7 +393,7 @@ impl G {
                     }
                     build_results.lock().unwrap().insert(
                         node_idx,
-                        (GNodeStatus::AncestorFailed, (Vec::new(), Vec::new())),
+                        (GNodeStatus::AncestorFailed, Ok((Vec::new(), Vec::new()))),
                     );
                     return;
                 }
@@ -472,9 +483,29 @@ impl G {
             // Update status based on build results
             let mut results = build_results.into_inner().unwrap();
             for idx in ready.clone() {
-                let (status, (new_expanded_nodes, new_expanded_edges)) = results
+                let (status, expand_result) = results
                     .remove(&idx)
-                    .unwrap_or((GNodeStatus::BuildFailed, (Vec::new(), Vec::new())));
+                    .unwrap_or((GNodeStatus::BuildFailed, Ok((Vec::new(), Vec::new()))));
+
+                // Handle expand result
+                let (new_expanded_nodes, new_expanded_edges) = match expand_result {
+                    Ok(data) => data,
+                    Err(e) => {
+                        error!(
+                            "Expand failed for {}: {}",
+                            self.g[idx].pathbuf().display(),
+                            e
+                        );
+                        // Treat expand failure as build failure
+                        self.nodes_status.insert(idx, GNodeStatus::BuildFailed);
+                        self.mark_dependents_failed(idx, &mut built);
+                        success = false;
+                        built.insert(idx);
+                        progress_made = true;
+                        continue;
+                    }
+                };
+
                 self.nodes_status.insert(idx, status);
 
                 if status == GNodeStatus::BuildFailed || status == GNodeStatus::AncestorFailed {

@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use yamake::c_nodes::{AFile, CFile, HFile, OFile};
 use yamake::command::log_build;
-use yamake::model::{Edge, ExpandResult, GNode};
+use yamake::model::{Edge, ExpandError, ExpandResult, GNode};
 
 pub struct JsonDesc {
     pub name: String,
@@ -79,10 +79,15 @@ impl GNode for JsonDesc {
     fn expand(&self, sandbox: &Path, _predecessors: &[&(dyn GNode + Send + Sync)]) -> ExpandResult {
         let input_path = sandbox.join(&self.name);
         let json_content = fs::read_to_string(&input_path)
-            .unwrap_or_else(|e| panic!("Failed to read {}: {}", input_path.display(), e));
+            .map_err(|e| ExpandError::ReadError(input_path.clone(), e))?;
 
-        let languages: Vec<Language> = serde_json::from_str(&json_content)
-            .unwrap_or_else(|e| panic!("Failed to parse JSON {}: {}", input_path.display(), e));
+        let languages: Vec<Language> = serde_json::from_str(&json_content).map_err(|e| {
+            ExpandError::ParseError(format!(
+                "Failed to parse JSON {}: {}",
+                input_path.display(),
+                e
+            ))
+        })?;
 
         let generated_dir = sandbox.join("project_expand/generated");
         fs::create_dir_all(&generated_dir).ok();
@@ -99,15 +104,17 @@ impl GNode for JsonDesc {
                 "const char* helloworld_{}=\"{}\" ;\nconst char* get_{}() {{ return helloworld_{} ; }}\n",
                 lang.language, lang.helloworld, lang.language, lang.language
             );
-            fs::write(sandbox.join(&c_path), &c_content)
-                .unwrap_or_else(|e| panic!("Failed to write {}: {}", c_path, e));
+            let c_full_path = sandbox.join(&c_path);
+            fs::write(&c_full_path, &c_content)
+                .map_err(|e| ExpandError::WriteError(c_full_path, e))?;
             nodes.push(Box::new(CFile::new(&c_path)));
 
             // Generate H file
             let h_path = format!("project_expand/generated/{}.h", lang.language);
             let h_content = format!("const char* get_{}() ;\n", lang.language);
-            fs::write(sandbox.join(&h_path), &h_content)
-                .unwrap_or_else(|e| panic!("Failed to write {}: {}", h_path, e));
+            let h_full_path = sandbox.join(&h_path);
+            fs::write(&h_full_path, &h_content)
+                .map_err(|e| ExpandError::WriteError(h_full_path, e))?;
             nodes.push(Box::new(HFile::new(&h_path)));
 
             // Create OFile for this language
@@ -160,8 +167,9 @@ impl GNode for JsonDesc {
 
         h_content.push_str("#endif\n");
 
-        fs::write(sandbox.join(&languages_h_path), &h_content)
-            .unwrap_or_else(|e| panic!("Failed to write {}: {}", languages_h_path.display(), e));
+        let languages_h_full_path = sandbox.join(&languages_h_path);
+        fs::write(&languages_h_full_path, &h_content)
+            .map_err(|e| ExpandError::WriteError(languages_h_full_path, e))?;
         nodes.push(Box::new(HFile::new(&languages_h_path.to_string_lossy())));
 
         // Add edge from JsonDesc to languages.h
@@ -170,6 +178,6 @@ impl GNode for JsonDesc {
             nto: Box::new(HFile::new(&languages_h_path.to_string_lossy())),
         });
 
-        (nodes, edges)
+        Ok((nodes, edges))
     }
 }

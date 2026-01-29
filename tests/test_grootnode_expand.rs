@@ -96,7 +96,7 @@ impl GRootNode for ExpandingRootNode {
             nto: Box::new(GeneratedNode::new("generated/node1.txt")),
         }];
 
-        (nodes, edges)
+        Ok((nodes, edges))
     }
 }
 
