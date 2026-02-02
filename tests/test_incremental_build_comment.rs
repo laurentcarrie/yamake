@@ -6,12 +6,12 @@ use tempdir::TempDir;
 use yamake::c_nodes::{AFile, CFile, HFile, OFile, XFile};
 use yamake::model::{G, GNodeStatus};
 
-/// Tests that adding a comment to a C file triggers a rebuild but results in BuildNotRequired.
+/// Tests that adding a comment to a C file triggers a rebuild but results in BuildNotChanged.
 ///
 /// Adding a comment changes the source file digest (so it's MountedChanged), which triggers
 /// a rebuild of add.o. However, since comments don't affect compiled output, the add.o
-/// digest should be unchanged, resulting in BuildNotRequired status. Since add.o is
-/// BuildNotRequired, downstream nodes (libproject.a, app) should also be BuildNotRequired.
+/// digest should be unchanged, resulting in BuildNotChanged status. Since add.o is
+/// BuildNotChanged, downstream nodes (libproject.a, app) should be BuildNotRequired.
 #[test]
 fn test_incremental_build_with_comment() {
     // Create temp directories for srcdir and sandbox
@@ -93,11 +93,11 @@ fn test_incremental_build_with_comment() {
         "add.c should be MountedChanged"
     );
 
-    // Check add.o is BuildNotRequired (rebuilt but output unchanged)
+    // Check add.o is BuildNotChanged (rebuilt but output unchanged)
     assert_eq!(
         g.nodes_status.get(&add_o),
-        Some(&GNodeStatus::BuildNotRequired),
-        "add.o should be BuildNotRequired (comment doesn't change compiled output)"
+        Some(&GNodeStatus::BuildNotChanged),
+        "add.o should be BuildNotChanged (comment doesn't change compiled output)"
     );
 
     // Check libproject.a is BuildNotRequired (predecessor unchanged)

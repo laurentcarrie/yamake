@@ -48,6 +48,7 @@ fn test_project_expand() {
     g.add_edge(liblangs, app);
 
     let result = g.make();
+
     assert!(result, "make should return true on successful build");
 
     // Verify the executable was built
