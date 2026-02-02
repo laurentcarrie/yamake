@@ -484,7 +484,7 @@ impl G {
             "Status count mismatch: {total} statuses but {node_count} nodes"
         );
 
-        info!(
+        println!(
             "I:{} MC:{} MN:{} MF:{} SI:{} R:{} BS:{} BNC:{} BNR:{} BF:{} AF:{}",
             counts
                 .get(&GNodeStatus::Initial)

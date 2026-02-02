@@ -207,3 +207,19 @@ When all predecessors have status `MountedNotChanged`, `BuildNotChanged`, or `Bu
   - `BuildNotChanged` if output digest is unchanged (e.g., adding a comment to source)
 
 ---
+
+# parallel builds
+
+Builds are executed concurrently using [Rayon](https://docs.rs/rayon). Nodes at the same dependency level can be built in parallel, while respecting the dependency graph.
+
+The build phase operates in three stages:
+1. **Categorization** (sequential): Determine which nodes are ready to build
+   - Mark `AncestorFailed` for nodes with failed predecessors
+   - Mark `BuildNotRequired` for nodes with unchanged predecessors and matching output digest
+   - Collect nodes ready to build (all predecessors ready, no failures)
+2. **Build** (parallel): Execute builds concurrently using `rayon::par_iter()`
+3. **Status update** (sequential): Apply build results to node statuses
+
+This approach maximizes parallelism while ensuring correct dependency ordering.
+
+---

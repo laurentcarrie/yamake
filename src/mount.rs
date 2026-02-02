@@ -46,8 +46,24 @@ impl G {
             let pathbuf = self.g[node_idx].pathbuf();
             let pathbuf_str = pathbuf.to_string_lossy().to_string();
 
-            // Compute digest of source file before mounting
             let source_path = self.srcdir.join(&pathbuf);
+            let sandbox_path = self.sandbox.join(&pathbuf);
+
+            // If file doesn't exist in srcdir but exists in sandbox, it was generated
+            // by expand() and doesn't need mounting - treat as MountedChanged
+            if !source_path.exists() && sandbox_path.exists() {
+                let current_digest = compute_file_digest(&sandbox_path);
+                let status = match (&current_digest, previous_digests.get(&pathbuf_str)) {
+                    (Some(current), Some(previous)) if current == previous => {
+                        GNodeStatus::MountedNotChanged
+                    }
+                    _ => GNodeStatus::MountedChanged,
+                };
+                self.nodes_status.insert(node_idx, status);
+                continue;
+            }
+
+            // Compute digest of source file before mounting
             let current_digest = compute_file_digest(&source_path);
 
             // Mount the file from srcdir to sandbox

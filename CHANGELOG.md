@@ -9,6 +9,11 @@ All notable changes to this project will be documented in this file.
   - Distinguishes between `BuildSuccess` (output changed) and `BuildNotChanged` (output unchanged)
   - Downstream nodes see `BuildNotChanged` as "unchanged" for incremental build decisions
 - **expand_single_node() method**: Helper to call expand on individual nodes during build
+- **Concurrent builds**: Node builds now run in parallel using Rayon
+  - Nodes at the same dependency level are built concurrently
+  - Respects dependency graph - nodes only build after all predecessors are ready
+- **Status summary per iteration**: `print_status()` called at end of each build loop iteration
+- **Status count assertion**: Verifies all nodes have a status at end of each iteration
 
 ### Changed
 - **Replaced walk module with make module**: Complete rewrite of build orchestration
@@ -18,6 +23,10 @@ All notable changes to this project will be documented in this file.
 - **Moved mount_root_nodes to mount module**: Better code organization
 - **Graph digest includes node statuses**: Digest now tracks both file contents and node statuses
   - Ensures loop continues when statuses change even if file contents don't
+- **build_nodes() refactored for concurrency**: Split into three phases:
+  1. Sequential categorization (AncestorFailed, BuildNotRequired, ready to build)
+  2. Parallel builds using `rayon::par_iter()`
+  3. Sequential status updates from build results
 
 ### Fixed
 - **Expand timing with dynamic edges**: Nodes that receive edges from expand are now properly rebuilt

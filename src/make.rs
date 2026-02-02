@@ -1,6 +1,7 @@
 use crate::model::{EdgeType, G, GNodeStatus, MakeOutput, OutputInfo, PredecessorInfo};
 use log::error;
 use petgraph::graph::NodeIndex;
+use rayon::prelude::*;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -64,6 +65,18 @@ impl G {
 
             // Build nodes
             self.build_nodes(&previous_digests);
+
+            // Print status summary for this iteration
+            self.print_status();
+
+            // Verify all nodes have a status
+            assert_eq!(
+                self.nodes_status.len(),
+                self.g.node_count(),
+                "Status count ({}) does not match node count ({})",
+                self.nodes_status.len(),
+                self.g.node_count()
+            );
 
             let digest_after = self.graph_digest();
             if digest_after == digest_before {
@@ -209,8 +222,13 @@ impl G {
     /// A node is ready to build when all its predecessors have been built or mounted.
     /// Nodes with ScanIncomplete status are skipped.
     /// If all predecessors are unchanged and output exists with same digest, skip build.
+    /// Builds are executed concurrently using Rayon.
     fn build_nodes(&mut self, previous_digests: &HashMap<String, String>) {
         let node_indices: Vec<NodeIndex> = self.g.node_indices().collect();
+
+        // First pass: mark AncestorFailed and BuildNotRequired nodes (no actual building)
+        let mut nodes_to_expand: Vec<NodeIndex> = Vec::new();
+        let mut nodes_to_build: Vec<NodeIndex> = Vec::new();
 
         for node_idx in node_indices {
             // Skip nodes that are not in Initial status
@@ -228,8 +246,7 @@ impl G {
                 continue;
             }
 
-            // Check if any predecessor failed (but skip if any predecessor is still Initial,
-            // as it might still be built successfully)
+            // Check if any predecessor is still Initial - wait for it
             let has_initial_predecessor = self
                 .g
                 .neighbors_directed(node_idx, petgraph::Direction::Incoming)
@@ -238,10 +255,10 @@ impl G {
                 });
 
             if has_initial_predecessor {
-                // Don't process yet - wait for predecessors to be built
                 continue;
             }
 
+            // Check if any predecessor failed
             let has_failed_predecessor = self
                 .g
                 .neighbors_directed(node_idx, petgraph::Direction::Incoming)
@@ -276,7 +293,7 @@ impl G {
                 continue;
             }
 
-            // Check if all predecessors are unchanged (MountedNotChanged, BuildNotChanged or BuildNotRequired)
+            // Check if all predecessors are unchanged
             let all_predecessors_unchanged = self
                 .g
                 .neighbors_directed(node_idx, petgraph::Direction::Incoming)
@@ -303,46 +320,64 @@ impl G {
                         if current == previous {
                             self.nodes_status
                                 .insert(node_idx, GNodeStatus::BuildNotRequired);
-                            // Call expand on skipped nodes to add any dynamic edges
-                            self.expand_single_node(node_idx);
+                            nodes_to_expand.push(node_idx);
                             continue;
                         }
                     }
                 }
             }
 
-            // Get predecessors for the build call
-            let pred_indices: Vec<NodeIndex> = self
-                .g
-                .neighbors_directed(node_idx, petgraph::Direction::Incoming)
-                .collect();
+            // Node is ready to build
+            nodes_to_build.push(node_idx);
+        }
 
-            let predecessors: Vec<&(dyn crate::model::GNode + Send + Sync)> = pred_indices
-                .iter()
-                .map(|&idx| self.g[idx].as_ref())
-                .collect();
+        // Expand nodes marked as BuildNotRequired
+        for node_idx in nodes_to_expand {
+            self.expand_single_node(node_idx);
+        }
 
-            // Build the node
-            let build_ok = self.g[node_idx].build(&self.sandbox, &predecessors);
+        // Build nodes concurrently
+        let build_results: Vec<(NodeIndex, GNodeStatus)> = nodes_to_build
+            .par_iter()
+            .map(|&node_idx| {
+                // Get predecessors for the build call
+                let pred_indices: Vec<NodeIndex> = self
+                    .g
+                    .neighbors_directed(node_idx, petgraph::Direction::Incoming)
+                    .collect();
 
-            // Update status based on build result
-            if build_ok {
-                // Check if output digest is the same as previous
-                let pathbuf = self.g[node_idx].pathbuf();
-                let pathbuf_str = pathbuf.to_string_lossy().to_string();
-                let output_path = self.sandbox.join(&pathbuf);
-                let current_digest = compute_file_digest(&output_path);
+                let predecessors: Vec<&(dyn crate::model::GNode + Send + Sync)> = pred_indices
+                    .iter()
+                    .map(|&idx| self.g[idx].as_ref())
+                    .collect();
 
-                let status = match (&current_digest, previous_digests.get(&pathbuf_str)) {
-                    (Some(current), Some(previous)) if current == previous => {
-                        GNodeStatus::BuildNotChanged
+                // Build the node
+                let build_ok = self.g[node_idx].build(&self.sandbox, &predecessors);
+
+                // Determine status based on build result
+                let status = if build_ok {
+                    let pathbuf = self.g[node_idx].pathbuf();
+                    let pathbuf_str = pathbuf.to_string_lossy().to_string();
+                    let output_path = self.sandbox.join(&pathbuf);
+                    let current_digest = compute_file_digest(&output_path);
+
+                    match (&current_digest, previous_digests.get(&pathbuf_str)) {
+                        (Some(current), Some(previous)) if current == previous => {
+                            GNodeStatus::BuildNotChanged
+                        }
+                        _ => GNodeStatus::BuildSuccess,
                     }
-                    _ => GNodeStatus::BuildSuccess,
+                } else {
+                    GNodeStatus::BuildFailed
                 };
-                self.nodes_status.insert(node_idx, status);
-            } else {
-                self.nodes_status.insert(node_idx, GNodeStatus::BuildFailed);
-            }
+
+                (node_idx, status)
+            })
+            .collect();
+
+        // Update statuses from build results
+        for (node_idx, status) in build_results {
+            self.nodes_status.insert(node_idx, status);
         }
     }
 
