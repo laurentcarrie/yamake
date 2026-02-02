@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-02-02
+
 ### Added
 - **BuildNotChanged status**: New status for nodes that are rebuilt but produce identical output
   - Distinguishes between `BuildSuccess` (output changed) and `BuildNotChanged` (output unchanged)
