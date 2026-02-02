@@ -18,6 +18,7 @@ pub enum GNodeStatus {
     ScanIncomplete,
     Running,
     BuildSuccess,
+    BuildNotChanged,
     BuildNotRequired,
     BuildFailed,
     AncestorFailed,
@@ -420,6 +421,7 @@ impl G {
                 Some(GNodeStatus::ScanIncomplete) => "fill:#FFFACD,stroke:#DAA520",
                 Some(GNodeStatus::Running) => "fill:#87CEEB,stroke:#00CED1",
                 Some(GNodeStatus::BuildSuccess) => "fill:#98FB98,stroke:#32CD32",
+                Some(GNodeStatus::BuildNotChanged) => "fill:#90EE90,stroke:#228B22",
                 Some(GNodeStatus::BuildNotRequired) => "fill:#E6E6FA,stroke:#9370DB",
                 Some(GNodeStatus::BuildFailed) => "fill:#FF6347,stroke:#B22222",
                 Some(GNodeStatus::AncestorFailed) => "fill:#FFA07A,stroke:#FF4500",
@@ -483,7 +485,7 @@ impl G {
         );
 
         info!(
-            "I:{} MC:{} MN:{} MF:{} SI:{} R:{} BS:{} BNR:{} BF:{} AF:{}",
+            "I:{} MC:{} MN:{} MF:{} SI:{} R:{} BS:{} BNC:{} BNR:{} BF:{} AF:{}",
             counts
                 .get(&GNodeStatus::Initial)
                 .unwrap_or(&0)
@@ -520,6 +522,12 @@ impl G {
                 .unwrap_or(&0)
                 .to_string()
                 .green()
+                .bold(),
+            counts
+                .get(&GNodeStatus::BuildNotChanged)
+                .unwrap_or(&0)
+                .to_string()
+                .bright_green()
                 .bold(),
             counts
                 .get(&GNodeStatus::BuildNotRequired)

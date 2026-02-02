@@ -24,6 +24,7 @@ Each node has a status that tracks its state during the build process:
 | `ScanIncomplete` | Waiting for dependencies to be generated (e.g., by expand) |
 | `Running` | Node is currently being built |
 | `BuildSuccess` | Build completed successfully with changed output |
+| `BuildNotChanged` | Build completed successfully but output unchanged |
 | `BuildNotRequired` | Build skipped (predecessors unchanged and output digest matches) |
 | `BuildFailed` | Build failed |
 | `AncestorFailed` | Skipped because a predecessor failed |
@@ -132,7 +133,7 @@ changed ?}:::choice
 decision_build_success -- no --> build_failed[BuildFailed]:::ko
 
 decision_final_digest -- yes --> build_success[BuildSuccess]:::changed
-decision_final_digest -- no --> build_not_required2[BuildNotRequired]:::unchanged
+decision_final_digest -- no --> build_not_changed[BuildNotChanged]:::unchanged
 
 
 classDef ko fill:#f00,color:white,font-weight:bold,stroke-width:2px,stroke:yellow
@@ -199,8 +200,10 @@ The build system supports incremental builds by tracking:
 2. **Output file digests**: Avoid rebuilding when output would be identical
 3. **Predecessor statuses**: Skip builds when all predecessors are unchanged
 
-When all predecessors have status `MountedNotChanged` or `BuildNotRequired`, the output file is checked:
+When all predecessors have status `MountedNotChanged`, `BuildNotChanged`, or `BuildNotRequired`, the output file is checked:
 - If it exists and its digest matches the previous build, status is set to `BuildNotRequired`
-- Otherwise, the build runs and the result is compared to set `BuildSuccess` or `BuildNotRequired`
+- Otherwise, the build runs and the result is compared:
+  - `BuildSuccess` if output digest changed
+  - `BuildNotChanged` if output digest is unchanged (e.g., adding a comment to source)
 
 ---

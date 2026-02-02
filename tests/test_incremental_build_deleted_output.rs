@@ -6,10 +6,10 @@ use tempdir::TempDir;
 use yamake::c_nodes::{AFile, CFile, HFile, OFile, XFile};
 use yamake::model::{G, GNodeStatus};
 
-/// Tests that deleting an output file and rebuilding results in BuildNotRequired.
+/// Tests that deleting an output file and rebuilding results in BuildNotChanged.
 ///
 /// After first successful build, delete add.o from sandbox and rebuild:
-/// - add.o should be rebuilt but have status BuildNotRequired (digest unchanged)
+/// - add.o should be rebuilt but have status BuildNotChanged (digest unchanged)
 #[test]
 fn test_incremental_build_after_delete() {
     let srcdir = PathBuf::from("demo_projects");
@@ -68,11 +68,11 @@ fn test_incremental_build_after_delete() {
     // Verify add.o was rebuilt
     assert!(add_o_path.exists(), "add.o should exist after second build");
 
-    // Check add.o is BuildNotRequired (rebuilt but digest unchanged)
+    // Check add.o is BuildNotChanged (rebuilt but digest unchanged)
     let status = g.nodes_status.get(&add_o);
     assert_eq!(
         status,
-        Some(&GNodeStatus::BuildNotRequired),
-        "add.o should be BuildNotRequired, got {status:?}"
+        Some(&GNodeStatus::BuildNotChanged),
+        "add.o should be BuildNotChanged, got {status:?}"
     );
 }

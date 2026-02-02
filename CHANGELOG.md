@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **BuildNotChanged status**: New status for nodes that are rebuilt but produce identical output
+  - Distinguishes between `BuildSuccess` (output changed) and `BuildNotChanged` (output unchanged)
+  - Downstream nodes see `BuildNotChanged` as "unchanged" for incremental build decisions
+- **expand_single_node() method**: Helper to call expand on individual nodes during build
+
+### Changed
+- **Replaced walk module with make module**: Complete rewrite of build orchestration
+- **Build loop order**: Changed from mount→scan→build→expand to mount→expand→scan→build
+  - Expand runs before scan so dynamically generated nodes exist when scanning for dependencies
+  - Scan runs before build so discovered dependencies are available for build decisions
+- **Moved mount_root_nodes to mount module**: Better code organization
+- **Graph digest includes node statuses**: Digest now tracks both file contents and node statuses
+  - Ensures loop continues when statuses change even if file contents don't
+
+### Fixed
+- **Expand timing with dynamic edges**: Nodes that receive edges from expand are now properly rebuilt
+  - BuildFailed nodes are reset to Initial when expand adds new predecessor edges
+- **Incremental builds with generated headers**: Scan-discovered dependencies from changed sources trigger rebuilds
+  - Nodes reset to Initial when scan adds edges from new/changed dependencies
+- **AncestorFailed propagation**: Nodes with Initial predecessors are skipped instead of marked AncestorFailed
+  - Prevents premature failure marking before all predecessors are processed
+
+### Tests
+- Updated `test_incremental_build_comment` and `test_incremental_build_deleted_output` to expect `BuildNotChanged`
+- All project_expand tests now pass with correct incremental rebuild behavior
+
 ## [0.1.8] - 2026-01-29
 
 ### Added
