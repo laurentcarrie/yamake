@@ -149,11 +149,11 @@ impl G {
         match File::create(&report_path) {
             Ok(file) => {
                 if let Err(e) = serde_yaml::to_writer(file, &output) {
-                    error!("Failed to write make-report.yml: {}", e);
+                    error!("Failed to write make-report.yml: {e}");
                 }
             }
             Err(e) => {
-                error!("Failed to create make-report.yml: {}", e);
+                error!("Failed to create make-report.yml: {e}");
             }
         }
     }
@@ -178,11 +178,13 @@ impl G {
                 .collect();
 
             // Call scan on the node
-            let (scan_complete, scanned_paths) = self.g[node_idx].scan(&self.sandbox, &predecessors);
+            let (scan_complete, scanned_paths) =
+                self.g[node_idx].scan(&self.sandbox, &predecessors);
 
             // If scan is not complete, mark node as ScanIncomplete
             if !scan_complete {
-                self.nodes_status.insert(node_idx, GNodeStatus::ScanIncomplete);
+                self.nodes_status
+                    .insert(node_idx, GNodeStatus::ScanIncomplete);
             }
 
             // Add edges for discovered dependencies
@@ -250,9 +252,7 @@ impl G {
             let has_initial_predecessor = self
                 .g
                 .neighbors_directed(node_idx, petgraph::Direction::Incoming)
-                .any(|pred_idx| {
-                    self.nodes_status.get(&pred_idx) == Some(&GNodeStatus::Initial)
-                });
+                .any(|pred_idx| self.nodes_status.get(&pred_idx) == Some(&GNodeStatus::Initial));
 
             if has_initial_predecessor {
                 continue;
@@ -270,7 +270,8 @@ impl G {
                 });
 
             if has_failed_predecessor {
-                self.nodes_status.insert(node_idx, GNodeStatus::AncestorFailed);
+                self.nodes_status
+                    .insert(node_idx, GNodeStatus::AncestorFailed);
                 continue;
             }
 
@@ -471,6 +472,7 @@ impl G {
     /// For each node in alphabetical order by pathbuf:
     /// - If the file exists in the sandbox, compute its digest
     /// - Otherwise use "none"
+    ///
     /// Also includes node statuses to detect when work remains to be done.
     /// Concatenate all digests and return the digest of that string.
     pub fn graph_digest(&self) -> String {
@@ -480,7 +482,11 @@ impl G {
             .node_indices()
             .map(|idx| {
                 let pathbuf = self.g[idx].pathbuf();
-                let status = self.nodes_status.get(&idx).copied().unwrap_or(GNodeStatus::Initial);
+                let status = self
+                    .nodes_status
+                    .get(&idx)
+                    .copied()
+                    .unwrap_or(GNodeStatus::Initial);
                 (pathbuf, status)
             })
             .collect();
@@ -492,7 +498,7 @@ impl G {
             let full_path = self.sandbox.join(&path);
             let file_digest = compute_file_digest(&full_path).unwrap_or_else(|| "none".to_string());
             combined.push_str(&file_digest);
-            combined.push_str(&format!("{:?}", status));
+            combined.push_str(&format!("{status:?}"));
         }
 
         // Return digest of combined string

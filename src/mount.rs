@@ -69,7 +69,8 @@ impl G {
             // Mount the file from srcdir to sandbox
             if let Err(e) = mount(&self.srcdir, &self.sandbox, &pathbuf) {
                 error!("Failed to mount {}: {}", pathbuf.display(), e);
-                self.nodes_status.insert(node_idx, GNodeStatus::MountedFailed);
+                self.nodes_status
+                    .insert(node_idx, GNodeStatus::MountedFailed);
             } else {
                 // Compare current digest with previous to determine if changed
                 let status = match (&current_digest, previous_digests.get(&pathbuf_str)) {

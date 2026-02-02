@@ -1,5 +1,4 @@
 use colored::Colorize;
-use log::info;
 use petgraph::Direction;
 use petgraph::Graph;
 use petgraph::graph::{EdgeIndex, NodeIndex};
