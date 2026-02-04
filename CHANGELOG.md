@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-02-04
+
+### Changed
+- Removed unused mdbook-mermaid library dependency
+
 ## [0.1.9] - 2026-02-02
 
 ### Added

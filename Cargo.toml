@@ -1,6 +1,6 @@
 [package]
 name = "yamake"
-version = "0.1.9"
+version = "0.1.10"
 edition = "2024"
 description="yet another make tool."
 license = "MIT OR Apache-2.0"
@@ -32,7 +32,6 @@ humantime = "2.3.0"
 indicatif = "0.18.0"
 log = "0.4.27"
 markdown-heading-id = "0.1.0"
-mdbook-mermaid = "0.17.0"
 petgraph = { version = "0.8.2", features = ["serde_derive", "serde","all"] }
 pulldown-cmark = "0.13.0"
 rayon = "1.10"
