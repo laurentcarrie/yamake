@@ -62,8 +62,12 @@ impl GNode for GeneratedNode {
         PathBuf::from(&self.name)
     }
 
-    fn build(&self, _sandbox: &Path, _predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
-        true
+    fn build(&self, sandbox: &Path, _predecessors: &[&(dyn GNode + Send + Sync)]) -> bool {
+        let output_path = sandbox.join(&self.name);
+        if let Some(parent) = output_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::write(&output_path, "generated").is_ok()
     }
 }
 
