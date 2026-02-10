@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-02-10
+
+### Added
+- **Post-build output verification**: After a node's `build()` returns true, verify that the
+  expected output file exists at its pathbuf in the sandbox. If missing, mark the node as
+  `BuildFailed` and log an error. This catches bugs where a build command writes to the wrong
+  output path.
+
+### Tests
+- `test_buggy_ofile_wrong_output`: Verifies that a buggy OFile writing to "foobar" instead of
+  its pathbuf is correctly detected as `BuildFailed`
+- Updated `test_grootnode_expand`: `GeneratedNode.build()` now creates its output file
+
 ## [0.1.10] - 2026-02-04
 
 ### Changed

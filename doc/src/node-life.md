@@ -26,7 +26,7 @@ Each node has a status that tracks its state during the build process:
 | `BuildSuccess` | Build completed successfully with changed output |
 | `BuildNotChanged` | Build completed successfully but output unchanged |
 | `BuildNotRequired` | Build skipped (predecessors unchanged and output digest matches) |
-| `BuildFailed` | Build failed |
+| `BuildFailed` | Build failed, or build succeeded but output file missing |
 | `AncestorFailed` | Skipped because a predecessor failed |
 
 ---
@@ -127,10 +127,15 @@ decision_output_digest -- yes --> build
 decision_output_digest -- no --> build_not_required[BuildNotRequired]:::unchanged
 
 build --> decision_build_success
-decision_build_success -- yes --> decision_final_digest{output
+decision_build_success -- yes --> decision_output_exists{output
+file
+exists ?}:::choice
+decision_build_success -- no --> build_failed[BuildFailed]:::ko
+
+decision_output_exists -- no --> build_failed
+decision_output_exists -- yes --> decision_final_digest{output
 digest
 changed ?}:::choice
-decision_build_success -- no --> build_failed[BuildFailed]:::ko
 
 decision_final_digest -- yes --> build_success[BuildSuccess]:::changed
 decision_final_digest -- no --> build_not_changed[BuildNotChanged]:::unchanged
@@ -218,6 +223,8 @@ The build phase operates in three stages:
    - Mark `BuildNotRequired` for nodes with unchanged predecessors and matching output digest
    - Collect nodes ready to build (all predecessors ready, no failures)
 2. **Build** (parallel): Execute builds concurrently using `rayon::par_iter()`
+   - After each build succeeds, verify the output file exists at the expected pathbuf
+   - If the output file is missing, mark the node as `BuildFailed`
 3. **Status update** (sequential): Apply build results to node statuses
 
 This approach maximizes parallelism while ensuring correct dependency ordering.
