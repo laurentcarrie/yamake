@@ -360,13 +360,22 @@ impl G {
                     let pathbuf = self.g[node_idx].pathbuf();
                     let pathbuf_str = pathbuf.to_string_lossy().to_string();
                     let output_path = self.sandbox.join(&pathbuf);
-                    let current_digest = compute_file_digest(&output_path);
 
-                    match (&current_digest, previous_digests.get(&pathbuf_str)) {
-                        (Some(current), Some(previous)) if current == previous => {
-                            GNodeStatus::BuildNotChanged
+                    if !output_path.exists() {
+                        error!(
+                            "build succeeded but output file missing: {}",
+                            output_path.display()
+                        );
+                        GNodeStatus::BuildFailed
+                    } else {
+                        let current_digest = compute_file_digest(&output_path);
+
+                        match (&current_digest, previous_digests.get(&pathbuf_str)) {
+                            (Some(current), Some(previous)) if current == previous => {
+                                GNodeStatus::BuildNotChanged
+                            }
+                            _ => GNodeStatus::BuildSuccess,
                         }
-                        _ => GNodeStatus::BuildSuccess,
                     }
                 } else {
                     GNodeStatus::BuildFailed
