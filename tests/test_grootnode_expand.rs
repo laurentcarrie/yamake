@@ -94,11 +94,17 @@ impl GRootNode for ExpandingRootNode {
 
         let nodes: Vec<Box<dyn GNode + Send + Sync>> = vec![Box::new(node1), Box::new(node2)];
 
-        // Create an edge from this root to the first generated node
-        let edges: Vec<Edge> = vec![Edge {
-            nfrom: Box::new(ExpandingRootNode::new(&self.name)),
-            nto: Box::new(GeneratedNode::new("generated/node1.txt")),
-        }];
+        // Create edges from this root to both generated nodes
+        let edges: Vec<Edge> = vec![
+            Edge {
+                nfrom: Box::new(ExpandingRootNode::new(&self.name)),
+                nto: Box::new(GeneratedNode::new("generated/node1.txt")),
+            },
+            Edge {
+                nfrom: Box::new(ExpandingRootNode::new(&self.name)),
+                nto: Box::new(GeneratedNode::new("generated/node2.txt")),
+            },
+        ];
 
         Ok((nodes, edges))
     }
