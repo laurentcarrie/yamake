@@ -87,11 +87,13 @@ impl G {
         // Save digests to make-report.yml
         self.save_digests();
 
-        // Return false if any node failed to build
-        !self
-            .nodes_status
-            .values()
-            .any(|&status| status == GNodeStatus::BuildFailed)
+        // Return false if any node failed
+        !self.nodes_status.values().any(|&status| {
+            matches!(
+                status,
+                GNodeStatus::BuildFailed | GNodeStatus::MountedFailed | GNodeStatus::AncestorFailed
+            )
+        })
     }
 
     /// Save digests and status to make-report.yml.
@@ -233,8 +235,11 @@ impl G {
         let mut nodes_to_build: Vec<NodeIndex> = Vec::new();
 
         for node_idx in node_indices {
-            // Skip nodes that are not in Initial status
-            if self.nodes_status.get(&node_idx) != Some(&GNodeStatus::Initial) {
+            // Skip nodes that are not in Initial or ScanIncomplete status
+            if !matches!(
+                self.nodes_status.get(&node_idx),
+                Some(&GNodeStatus::Initial) | Some(&GNodeStatus::ScanIncomplete)
+            ) {
                 continue;
             }
 
@@ -248,6 +253,31 @@ impl G {
                 continue;
             }
 
+            // Check if any predecessor failed (check this before Initial wait)
+            let has_failed_predecessor = self
+                .g
+                .neighbors_directed(node_idx, petgraph::Direction::Incoming)
+                .any(|pred_idx| {
+                    matches!(
+                        self.nodes_status.get(&pred_idx),
+                        Some(GNodeStatus::BuildFailed)
+                            | Some(GNodeStatus::AncestorFailed)
+                            | Some(GNodeStatus::MountedFailed)
+                    )
+                });
+
+            if has_failed_predecessor {
+                self.nodes_status
+                    .insert(node_idx, GNodeStatus::AncestorFailed);
+                continue;
+            }
+
+            // Only Initial nodes proceed to build; ScanIncomplete without failed
+            // predecessors will be retried after more progress is made
+            if self.nodes_status.get(&node_idx) != Some(&GNodeStatus::Initial) {
+                continue;
+            }
+
             // Check if any predecessor is still Initial - wait for it
             let has_initial_predecessor = self
                 .g
@@ -255,23 +285,6 @@ impl G {
                 .any(|pred_idx| self.nodes_status.get(&pred_idx) == Some(&GNodeStatus::Initial));
 
             if has_initial_predecessor {
-                continue;
-            }
-
-            // Check if any predecessor failed
-            let has_failed_predecessor = self
-                .g
-                .neighbors_directed(node_idx, petgraph::Direction::Incoming)
-                .any(|pred_idx| {
-                    matches!(
-                        self.nodes_status.get(&pred_idx),
-                        Some(GNodeStatus::BuildFailed) | Some(GNodeStatus::AncestorFailed)
-                    )
-                });
-
-            if has_failed_predecessor {
-                self.nodes_status
-                    .insert(node_idx, GNodeStatus::AncestorFailed);
                 continue;
             }
 
